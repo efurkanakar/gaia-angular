@@ -1,5 +1,3 @@
-
-
 <h1>Gaia Query: Calculating Distances and Angular Separations</h1>
 
 <p>This repository contains a Streamlit application that queries the Gaia DR3 catalog for nearby objects and computes various properties, including angular separations and corrected distances from Earth by applying parallax zero-point corrections as per Lindegren et al. (2021). The application also intelligently selects the target object based on variable object status and parallax comparison with SIMBAD data.</p>
@@ -7,7 +5,7 @@
 <h2>Quick Start</h2>
 
 <p>To use this application immediately, visit the following link and start querying Gaia DR3 data directly from your browser:</p>
-<a href="https://gaia-object-distance.streamlit.app/" target="_blank">Gaia Query Application</a>
+<a href="https://gaia-object-distance.streamlit.app/" target="_blank">Gaia Query: Calculating Distances and Angular Separations</a>
 
 <h2>Table of Contents</h2>
 <ul>
