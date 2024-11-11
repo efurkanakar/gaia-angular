@@ -114,7 +114,7 @@ def compute_corrected_parallax_and_distance(row):
         distance_pc = None
         distance_error_pc = None
 
-    # Yeni sütunları bir Series olarak döndür
+    # Return new columns as a Series
     return pd.Series({
         'parallax_zero_point': parallax_zero_point,
         'corrected_parallax': corrected_parallax_value,
@@ -127,7 +127,7 @@ st.title("Gaia Query: Calculating Distances and Angular Separations")
 st.markdown("""
 <p style='font-size:16px'>
 This application searches for objects in the Gaia DR3 catalog and displays nearby objects with their properties.
-It calculates both the angular distance between objecets using the Haversine formula and the corrected distance 
+It calculates both the angular distance between objects using the Haversine formula and the corrected distance 
 from Earth by applying the parallax zero-point correction as Lindegren et al. (2021).
 </p>
 """, unsafe_allow_html=True)
@@ -159,23 +159,42 @@ if submitted:
         if gaia_results.empty:
             st.write("No nearby stars found in Gaia DR3.")
         else:
-            variable_star = gaia_results[gaia_results['phot_variable_flag'] == 'VARIABLE']
-            if not variable_star.empty:
-                closest_star = variable_star.iloc[0]
-            else:
-                closest_star = gaia_results.iloc[(gaia_results['parallax'] - simbad_parallax).abs().argsort().iloc[0]]
+            if simbad_parallax is not None:
+                # Set acceptable parallax difference threshold (e.g., 0.1 mas or 5% of SIMBAD parallax)
+                parallax_threshold = max(0.1, 0.05 * simbad_parallax)
 
-            if simbad_parallax is not None and abs(closest_star['parallax'] - simbad_parallax) > 1e-2:
-                st.write("No matching star found due to parallax mismatch.")
+                # First, check for variable stars with parallax close to SIMBAD's parallax
+                variable_stars = gaia_results[gaia_results['phot_variable_flag'] == 'VARIABLE'].copy()
+                variable_stars['parallax_diff'] = (variable_stars['parallax'] - simbad_parallax).abs()
+
+                close_variable_stars = variable_stars[variable_stars['parallax_diff'] <= parallax_threshold]
+
+                if not close_variable_stars.empty:
+                    # Select variable star with parallax closest to SIMBAD's parallax
+                    closest_star = close_variable_stars.loc[close_variable_stars['parallax_diff'].idxmin()]
+                else:
+                    # No variable stars with matching parallax, consider all stars
+                    gaia_results['parallax_diff'] = (gaia_results['parallax'] - simbad_parallax).abs()
+                    close_stars = gaia_results[gaia_results['parallax_diff'] <= parallax_threshold]
+                    if not close_stars.empty:
+                        # Select star with parallax closest to SIMBAD's parallax
+                        closest_star = close_stars.loc[close_stars['parallax_diff'].idxmin()]
+                    else:
+                        st.write("No matching star found due to parallax mismatch.")
+                        closest_star = None
             else:
-                # En yakın yıldız için hesaplamaları yap
-                closest_star = closest_star.copy()  # Kopya alarak orijinali koruyoruz
+                # SIMBAD parallax not available, select the star with smallest angular distance
+                closest_star = gaia_results.iloc[0]
+
+            if closest_star is not None:
+                # Perform calculations for the closest star
+                closest_star = closest_star.copy()
                 closest_star_new_cols = compute_corrected_parallax_and_distance(closest_star)
                 for col in closest_star_new_cols.index:
                     closest_star[col] = closest_star_new_cols[col]
 
-                # Diğer yıldızlar için hesaplamaları yap
-                gaia_results = gaia_results.copy()  # Kopya alarak orijinali koruyoruz
+                # Perform calculations for other stars
+                gaia_results = gaia_results.copy()
                 gaia_new_cols = gaia_results.apply(compute_corrected_parallax_and_distance, axis=1)
                 gaia_results = pd.concat([gaia_results, gaia_new_cols], axis=1)
 
@@ -193,6 +212,7 @@ if submitted:
                 gaia_results['Angular Distance [arcsec]'] = gaia_results['angular_distance'].apply(lambda x: x.nominal_value)
                 gaia_results['Angular Distance Error [arcsec]'] = gaia_results['angular_distance'].apply(lambda x: x.std_dev)
 
+                # Prepare dataframes for display
                 closest_star_row = pd.DataFrame({
                     "Designation": [closest_star['DESIGNATION']],
                     "RA [deg]": [closest_star['ra']],
@@ -248,3 +268,5 @@ if submitted:
                     "<p style='font-size:16px; font-style:italic;'>The target star is highlighted in dark green.</p>",
                     unsafe_allow_html=True)
                 st.dataframe(styled_table, use_container_width=True, hide_index=True)
+            else:
+                st.write("No matching star found due to parallax mismatch.")
