@@ -4,15 +4,12 @@ from uncertainties import ufloat
 from uncertainties.umath import sin, cos, sqrt, asin, radians, degrees
 from astroquery.simbad import Simbad
 from astroquery.gaia import Gaia
-from astropy.coordinates import SkyCoord, GeocentricTrueEcliptic
+from astropy.coordinates import SkyCoord
 import astropy.units as u
 from zero_point import zpt
 
 st.set_page_config(layout="wide")
-
-
 zpt.load_tables()
-
 
 def angular_distance_with_uncertainties(ra1_deg, dec1_deg, ra2_deg, dec2_deg,
                                         ra1_err_mas, dec1_err_mas, ra2_err_mas, dec2_err_mas):
@@ -29,7 +26,6 @@ def angular_distance_with_uncertainties(ra1_deg, dec1_deg, ra2_deg, dec2_deg,
     delta_ra = radians(ra2 - ra1)
     delta_dec = radians(dec2 - dec1)
 
-    #Haversine formula
     a = sin(delta_dec / 2)**2 + cos(radians(dec1)) * cos(radians(dec2)) * sin(delta_ra / 2)**2
     theta_arcseconds = degrees(2 * asin(sqrt(a))) * 3600
 
@@ -73,8 +69,6 @@ def query_simbad(star_name):
     custom_simbad.add_votable_fields('ra', 'dec', 'plx')
     return custom_simbad.query_object(star_name)
 
-
-# Zero-point correction calculation as explained Lindegren et al. (2020)
 def compute_zero_point_correction(row):
     phot_g_mean_mag = row['phot_g_mean_mag']
     nu_eff_used_in_astrometry = row['nu_eff_used_in_astrometry']
@@ -82,33 +76,52 @@ def compute_zero_point_correction(row):
     ecl_lat = row['ecl_lat']
     astrometric_params_solved = row['astrometric_params_solved']
 
-    # If pseudocolour is missing and it's a 5-parameter solution, set pseudocolour to 0.0
     if astrometric_params_solved == 31:
         if pd.isnull(pseudocolour):
             pseudocolour = 0.0
-
-    # If it’s a 6-parameter solution, check for pseudocolour and reset nu_eff_used_in_astrometry to None
     elif astrometric_params_solved == 95:
         nu_eff_used_in_astrometry = None
         if pd.isnull(pseudocolour):
             st.write("Warning: Pseudocolour is required for a 6-parameter solution.")
-            pseudocolour = 0.0  # Temporarily assigning 0.0 for calculation
-
-    # If solution type is unknown, set pseudocolour and nu_eff_used_in_astrometry to None
+            pseudocolour = 0.0
     else:
         pseudocolour = None
         nu_eff_used_in_astrometry = None
 
     try:
-        # Attempt zero-point calculation
         zero_point = zpt.get_zpt(phot_g_mean_mag, nu_eff_used_in_astrometry,
                                  pseudocolour, ecl_lat, astrometric_params_solved)
     except Exception as e:
-        # If calculation fails, set zero_point to 0.0 and display a message
         zero_point = 0.0
 
     return zero_point
 
+def compute_corrected_parallax_and_distance(row):
+    zero_point = compute_zero_point_correction(row)
+    parallax_zero_point = zero_point
+
+    if pd.notnull(row['parallax']) and pd.notnull(row['parallax_error']):
+        parallax = ufloat(row['parallax'], row['parallax_error'])
+        corrected_parallax = parallax - zero_point
+        distance = 1000 / corrected_parallax  # Distance in parsecs
+        corrected_parallax_value = corrected_parallax.nominal_value
+        corrected_parallax_error = corrected_parallax.std_dev
+        distance_pc = distance.nominal_value
+        distance_error_pc = distance.std_dev
+    else:
+        corrected_parallax_value = None
+        corrected_parallax_error = None
+        distance_pc = None
+        distance_error_pc = None
+
+    # Yeni sütunları bir Series olarak döndür
+    return pd.Series({
+        'parallax_zero_point': parallax_zero_point,
+        'corrected_parallax': corrected_parallax_value,
+        'corrected_parallax_error': corrected_parallax_error,
+        'distance_pc': distance_pc,
+        'distance_error_pc': distance_error_pc
+    })
 
 st.title("Gaia Query: Calculating Distances and Angular Separations")
 st.markdown("""
@@ -129,7 +142,7 @@ with st.form(key='search_form'):
     submitted = st.form_submit_button("Search")
 
 if submitted:
-    search_radius_deg = search_radius_arcsec / 3600  # Arcseconds to degrees
+    search_radius_deg = search_radius_arcsec / 3600
     result_table = query_simbad(star_name)
 
     if result_table is None:
@@ -155,32 +168,16 @@ if submitted:
             if simbad_parallax is not None and abs(closest_star['parallax'] - simbad_parallax) > 1e-2:
                 st.write("No matching star found due to parallax mismatch.")
             else:
+                # En yakın yıldız için hesaplamaları yap
+                closest_star = closest_star.copy()  # Kopya alarak orijinali koruyoruz
+                closest_star_new_cols = compute_corrected_parallax_and_distance(closest_star)
+                for col in closest_star_new_cols.index:
+                    closest_star[col] = closest_star_new_cols[col]
 
-                def compute_corrected_parallax_and_distance(row):
-                    zero_point = compute_zero_point_correction(row)
-                    row['parallax_zero_point'] = zero_point
-
-                    if pd.notnull(row['parallax']) and pd.notnull(row['parallax_error']):
-                        parallax = ufloat(row['parallax'], row['parallax_error'])
-                        corrected_parallax = parallax - zero_point
-                        distance = 1000 / corrected_parallax  # Distance in parsecs
-                        row['corrected_parallax'] = corrected_parallax.nominal_value
-                        row['corrected_parallax_error'] = corrected_parallax.std_dev
-                        print(corrected_parallax)
-                        print(row['corrected_parallax_error'])
-                        row['distance_pc'] = distance.nominal_value
-                        row['distance_error_pc'] = distance.std_dev
-                    else:
-                        row['corrected_parallax'] = None
-                        row['corrected_parallax_error'] = None
-                        row['distance_pc'] = None
-                        row['distance_error_pc'] = None
-
-                    return row
-
-                closest_star = compute_corrected_parallax_and_distance(closest_star)
-
-                gaia_results = gaia_results.apply(compute_corrected_parallax_and_distance, axis=1)
+                # Diğer yıldızlar için hesaplamaları yap
+                gaia_results = gaia_results.copy()  # Kopya alarak orijinali koruyoruz
+                gaia_new_cols = gaia_results.apply(compute_corrected_parallax_and_distance, axis=1)
+                gaia_results = pd.concat([gaia_results, gaia_new_cols], axis=1)
 
                 def compute_angular_distance(row):
                     result = angular_distance_with_uncertainties(
@@ -225,7 +222,7 @@ if submitted:
                     "Dec [deg]": gaia_results['dec'],
                     "Dec Error [mas]": gaia_results['dec_error'],
                     "Plx [mas]": gaia_results['parallax'],
-                    "Plx Err [mas]": gaia_results['parallax_error'],
+                    "Plx Error [mas]": gaia_results['parallax_error'],
                     "Plx Zero-point [mas]": gaia_results['parallax_zero_point'],
                     "Corr Plx [mas]": gaia_results['corrected_parallax'],
                     "Corr Plx Err [mas]": gaia_results['corrected_parallax_error'],
@@ -238,7 +235,7 @@ if submitted:
                     "Magnitude [Gaia G]": gaia_results['phot_g_mean_mag'],
                 })
 
-                full_table = pd.concat([closest_star_row, closest_stars], ignore_index=True)
+                full_table = pd.concat([closest_star_row, closest_stars], ignore_index=True).dropna(axis=1, how='all')
                 full_table = full_table.sort_values(by="Angular Distance [arcsec]", ascending=True, na_position='first').reset_index(drop=True)
 
                 def highlight_target_row(row):
