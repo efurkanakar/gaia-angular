@@ -1,10 +1,4 @@
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gaia Query: Calculating Distances and Angular Separations</title>
-</head>
-<body>
+
 
 <h1>Gaia Query: Calculating Distances and Angular Separations</h1>
 
