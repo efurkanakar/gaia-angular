@@ -3,3 +3,4 @@ pandas
 uncertainties
 astroquery
 astropy
+gaiadr3-zeropoint
