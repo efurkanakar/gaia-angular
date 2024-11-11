@@ -265,7 +265,7 @@ if submitted:
 
                 st.write("Nearby Objects")
                 st.markdown(
-                    "<p style='font-size:16px; font-style:italic;'>The target star is highlighted in dark green.</p>",
+                    "<p style='font-size:16px; font-style:italic;'>The target object is highlighted in dark green.</p>",
                     unsafe_allow_html=True)
                 st.dataframe(styled_table, use_container_width=True, hide_index=True)
             else:
