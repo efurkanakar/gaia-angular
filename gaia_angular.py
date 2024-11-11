@@ -127,7 +127,7 @@ st.title("Gaia Query: Calculating Distances and Angular Separations")
 st.markdown("""
 <p style='font-size:16px'>
 This application searches for objects in the Gaia DR3 catalog and displays nearby objects with their properties.
-It calculates both the angular distance between stars using the Haversine formula and the corrected distance 
+It calculates both the angular distance between objecets using the Haversine formula and the corrected distance 
 from Earth by applying the parallax zero-point correction as Lindegren et al. (2021).
 </p>
 """, unsafe_allow_html=True)
@@ -243,7 +243,7 @@ if submitted:
 
                 styled_table = full_table.style.apply(highlight_target_row, axis=1).set_properties(**{'text-align': 'center'})
 
-                st.write("Nearby Stars")
+                st.write("Nearby Objects")
                 st.markdown(
                     "<p style='font-size:16px; font-style:italic;'>The target star is highlighted in dark green.</p>",
                     unsafe_allow_html=True)
