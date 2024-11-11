@@ -1,106 +1,146 @@
-Gaia Query Application
-This repository contains a Streamlit application that queries the Gaia DR3 catalog for nearby stars and computes various properties, including angular separations and corrected distances from Earth by applying parallax zero-point corrections as per Lindegren et al. (2021). The application also intelligently selects the target star based on variable star status and parallax comparison with SIMBAD data.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaia Query Application</title>
+</head>
+<body>
 
-Table of Contents
-Features
-Installation
-Usage
-Target Star Selection Logic
-Dependencies
-Acknowledgements
-License
-Features
-Queries the SIMBAD database to retrieve the coordinates and parallax of a specified star.
-Searches the Gaia DR3 catalog for nearby stars within a user-defined radius.
-Calculates angular distances between the target star and nearby stars using the Haversine formula with uncertainties.
-Applies parallax zero-point corrections to Gaia data as per Lindegren et al. (2021).
-Displays a sorted table of nearby stars, including corrected parallaxes and distances.
-Highlights the target star in the output for easy identification.
-Installation
-Clone the repository:
+<h1>Gaia Query Application</h1>
 
-bash
-Kodu kopyala
-git clone https://github.com/yourusername/gaia-query-app.git
-cd gaia-query-app
-Create a virtual environment (optional but recommended):
+<p>This repository contains a Streamlit application that queries the Gaia DR3 catalog for nearby stars and computes various properties, including angular separations and corrected distances from Earth by applying parallax zero-point corrections as per Lindegren et al. (2021). The application also intelligently selects the target star based on variable star status and parallax comparison with SIMBAD data.</p>
 
-bash
-Kodu kopyala
-python -m venv venv
-source venv/bin/activate  # On Windows, use venv\Scripts\activate
-Install the required packages:
+<h2>Quick Start</h2>
 
-bash
-Kodu kopyala
-pip install -r requirements.txt
-Note: Ensure that you have the zero_point module available, as it's required for the parallax zero-point correction.
+<p>To use this application immediately, visit the following link and start querying Gaia DR3 data directly from your browser:</p>
+<a href="https://gaia-object-distance.streamlit.app/" target="_blank">Gaia Query Application</a>
 
-Usage
-Run the Streamlit application using:
+<h2>Table of Contents</h2>
+<ul>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#installation">Installation</a></li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#target-star-selection-logic">Target Star Selection Logic</a></li>
+    <li><a href="#dependencies">Dependencies</a></li>
+    <li><a href="#acknowledgements">Acknowledgements</a></li>
+    <li><a href="#license">License</a></li>
+</ul>
 
-bash
-Kodu kopyala
-streamlit run app.py
-This will open the application in your default web browser.
+<h2 id="features">Features</h2>
+<ul>
+    <li><strong>SIMBAD Database Query:</strong> Retrieves coordinates (RA and Dec) and parallax of a specified star from the SIMBAD database.</li>
+    <li><strong>Gaia DR3 Catalog Search:</strong> Searches for nearby stars within a user-defined radius in the Gaia DR3 catalog.</li>
+    <li><strong>Angular Distance Calculation:</strong> Calculates angular distances between the target star and nearby stars using the Haversine formula, including uncertainties.</li>
+    <li><strong>Parallax Zero-Point Correction:</strong> Applies parallax zero-point corrections to Gaia data as per Lindegren et al. (2021).</li>
+    <li><strong>Intelligent Target Star Selection:</strong> Selects the target star from Gaia data based on variable star status and parallax comparison with SIMBAD data.</li>
+    <li><strong>Results Display:</strong> Presents a sorted table of nearby stars, including corrected parallaxes, distances, and angular separations, with the target star highlighted.</li>
+</ul>
 
-Target Star Selection Logic
-An essential feature of this application is the intelligent selection of the target star from Gaia DR3 data based on SIMBAD information and certain criteria. The selection process is as follows:
+<h2 id="installation">Installation</h2>
+<ol>
+    <li>Clone the repository:
+        <pre><code>git clone https://github.com/yourusername/gaia-query-app.git
+cd gaia-query-app</code></pre>
+    </li>
+    <li>Create a virtual environment (optional but recommended):
+        <pre><code>python -m venv venv
+source venv/bin/activate  # On Windows, use venv\Scripts\activate</code></pre>
+    </li>
+    <li>Install the required packages:
+        <pre><code>pip install -r requirements.txt</code></pre>
+        <p><strong>Note:</strong> Ensure that you have the <code>zero_point</code> module available, as it's required for the parallax zero-point correction.</p>
+    </li>
+</ol>
 
-Retrieve Target Star Data from SIMBAD:
+<h2 id="usage">Usage</h2>
+<p>To run the application locally, use the following command:</p>
+<pre><code>streamlit run app.py</code></pre>
+<p>This will open the application in your default web browser.</p>
 
-The application first queries the SIMBAD database using the provided star name.
-It retrieves the Right Ascension (RA), Declination (Dec), and parallax value of the star.
-Query Gaia DR3 Catalog for Nearby Stars:
+<h2 id="target-star-selection-logic">Target Star Selection Logic</h2>
+<p>An essential feature of this application is the intelligent selection of the target star from Gaia DR3 data based on SIMBAD information and specific criteria. The selection process is designed to ensure accurate identification of the target star. The steps are as follows:</p>
 
-Using the coordinates from SIMBAD, the application searches the Gaia DR3 catalog for stars within a user-defined radius.
-Define Parallax Threshold:
+<ol>
+    <li><strong>Retrieve Target Star Data from SIMBAD:</strong>
+        <ul>
+            <li>The application queries the SIMBAD database using the provided star name.</li>
+            <li>It retrieves the Right Ascension (RA), Declination (Dec), and parallax value of the star.</li>
+        </ul>
+    </li>
+    <li><strong>Query Gaia DR3 Catalog for Nearby Stars:</strong>
+        <ul>
+            <li>Using the coordinates from SIMBAD, the application searches the Gaia DR3 catalog for stars within a user-defined radius.</li>
+        </ul>
+    </li>
+    <li><strong>Define Parallax Threshold:</strong>
+        <ul>
+            <li>A parallax difference threshold is calculated to determine acceptable matches between Gaia and SIMBAD parallax values.</li>
+            <li>The threshold is defined as the maximum of <strong>0.1 mas</strong> or <strong>5%</strong> of the SIMBAD parallax value.</li>
+        </ul>
+    </li>
+    <li><strong>Select Target Star from Gaia Data:</strong>
+        <ol>
+            <li><strong>Step 1: Check for Variable Stars</strong>
+                <ul>
+                    <li>Filter Gaia results for stars marked as variable (<code>phot_variable_flag == 'VARIABLE'</code>).</li>
+                    <li>Compute the absolute difference between their parallaxes and the SIMBAD parallax.</li>
+                    <li>If variable stars exist within the parallax threshold, select the one with the smallest parallax difference as the target star.</li>
+                </ul>
+            </li>
+            <li><strong>Step 2: If No Matching Variable Stars</strong>
+                <ul>
+                    <li>If no variable stars meet the criteria, consider all stars in the Gaia results.</li>
+                    <li>Compute the absolute parallax differences for all stars.</li>
+                    <li>If any stars are within the parallax threshold, select the one with the smallest parallax difference as the target star.</li>
+                </ul>
+            </li>
+            <li><strong>Step 3: If No Stars Match Parallax Criteria</strong>
+                <ul>
+                    <li>If no stars meet the parallax criteria, default to selecting the star with the smallest angular distance from the SIMBAD coordinates.</li>
+                </ul>
+            </li>
+        </ol>
+    </li>
+</ol>
 
-A parallax difference threshold is calculated to determine acceptable matches between Gaia and SIMBAD parallax values.
-The threshold is defined as the maximum of 0.1 mas or 5% of the SIMBAD parallax value.
-Select Target Star from Gaia Data:
+<h3>Rationale Behind the Selection Logic</h3>
+<ul>
+    <li><strong>Preference for Variable Stars:</strong> The application prioritizes Gaia entries marked as variable when matching with SIMBAD data.</li>
+    <li><strong>Parallax Comparison:</strong> Ensures the selected Gaia star corresponds to the same physical star as in SIMBAD.</li>
+    <li><strong>Fallback to Angular Distance:</strong> If parallax data is insufficient or not matching, angular proximity becomes the deciding factor.</li>
+</ul>
 
-Step 1: Check for Variable Stars:
+<h3>Example Scenario</h3>
+<p>For a star like <strong>KIC 10544976</strong>:</p>
+<ul>
+    <li>SIMBAD provides a parallax of approximately <strong>1.9345 mas</strong>.</li>
+    <li>The Gaia results include a star with a parallax of <strong>1.934524097171672 mas</strong> but not marked as variable.</li>
+    <li>Using the logic above, the application selects this star as the target because its parallax closely matches the SIMBAD value, despite not being marked as variable.</li>
+</ul>
 
-The application filters Gaia results for stars marked as variable (phot_variable_flag == 'VARIABLE').
-It computes the absolute difference between their parallaxes and the SIMBAD parallax.
-If variable stars exist within the parallax threshold, the one with the smallest parallax difference is selected as the target star.
-Step 2: If No Matching Variable Stars:
+<h2 id="dependencies">Dependencies</h2>
+<p>The application relies on several Python packages:</p>
+<ul>
+    <li><strong>Streamlit:</strong> For building the interactive web application.</li>
+    <li><strong>Pandas:</strong> For data manipulation and analysis.</li>
+    <li><strong>Astroquery:</strong> For querying astronomical databases like SIMBAD and Gaia.</li>
+    <li><strong>Astropy:</strong> For astronomical calculations and coordinate transformations.</li>
+    <li><strong>Uncertainties:</strong> For calculations involving uncertainties.</li>
+    <li><strong>ZeroPoint Module:</strong> For applying parallax zero-point corrections (ensure you have the <code>zero_point</code> module installed).</li>
+</ul>
+<p>Ensure all dependencies are installed by running:</p>
+<pre><code>pip install -r requirements.txt</code></pre>
 
-If no variable stars meet the criteria, the application considers all stars in the Gaia results.
-It computes the absolute parallax differences for all stars.
-If any stars are within the parallax threshold, the one with the smallest parallax difference is selected as the target star.
-Step 3: If No Stars Match Parallax Criteria:
+<h2 id="acknowledgements">Acknowledgements</h2>
+<ul>
+    <li><strong>Gaia Data:</strong> This work has made use of data from the European Space Agency (ESA) mission Gaia.</li>
+    <li><strong>SIMBAD Database:</strong> Operated at CDS, Strasbourg, France.</li>
+    <li><strong>Lindegren et al. (2021):</strong> For the methodology on parallax zero-point corrections.</li>
+</ul>
 
-If no stars meet the parallax criteria, the application defaults to selecting the star with the smallest angular distance from the SIMBAD coordinates.
-Rationale Behind the Selection Logic:
+<h2 id="license">License</h2>
+<p>This project is licensed under the Apache License 2.0 - see the <a href="LICENSE">LICENSE</a> file for details.</p>
 
-Preference for Variable Stars:
-Since the application focuses on variable stars, it prioritizes Gaia entries marked as variable when matching with SIMBAD data.
-Parallax Comparison:
-Comparing parallax values ensures that the selected Gaia star corresponds to the same physical star as in SIMBAD, accounting for potential slight differences due to measurement uncertainties.
-Fallback to Angular Distance:
-If parallax data is insufficient or not matching, angular proximity becomes the deciding factor, assuming the closest star is likely the target.
-Example Scenario:
-
-For a star like KIC 10544976:
-SIMBAD provides a parallax of approximately 1.9345 mas.
-The Gaia results include a star with a parallax of 1.934524097171672 mas but not marked as variable.
-Using the logic above, the application selects this star as the target because its parallax closely matches the SIMBAD value, despite not being marked as variable.
-Dependencies
-The application relies on several Python packages:
-
-Streamlit: For building the interactive web application.
-Pandas: For data manipulation and analysis.
-Astroquery: For querying astronomical databases like SIMBAD and Gaia.
-Astropy: For astronomical calculations and coordinate transformations.
-Uncertainties: For calculations involving uncertainties.
-ZeroPoint Module: For applying parallax zero-point corrections (ensure you have the zero_point module installed).
-Ensure all dependencies are installed by running pip install -r requirements.txt.
-
-Acknowledgements
-Gaia Data: This work has made use of data from the European Space Agency (ESA) mission Gaia.
-SIMBAD Database: Operated at CDS, Strasbourg, France.
-Lindegren et al. (2021): For the methodology on parallax zero-point corrections.
-License
-This project is licensed under the MIT License - see the LICENSE file for details.
+</body>
+</html>
