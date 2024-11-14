@@ -100,31 +100,31 @@ def query_simbad(star_name):
 
 def compute_zero_point_correction(row):
     try:
-        # Retrieve parameters, skipping calculation if any required fields are missing
-        phot_g_mean_mag = row['phot_g_mean_mag']
-        nu_eff_used_in_astrometry = row['nu_eff_used_in_astrometry']
-        pseudocolour = row['pseudocolour']
-        ecl_lat = row['ecl_lat']
-        astrometric_params_solved = row['astrometric_params_solved']
+        # Retrieve parameters and ensure they are cast to float, or set to None if missing
+        phot_g_mean_mag = float(row['phot_g_mean_mag']) if pd.notnull(row['phot_g_mean_mag']) else None
+        nu_eff_used_in_astrometry = float(row['nu_eff_used_in_astrometry']) if pd.notnull(row['nu_eff_used_in_astrometry']) else None
+        pseudocolour = float(row['pseudocolour']) if pd.notnull(row['pseudocolour']) else None
+        ecl_lat = float(row['ecl_lat']) if pd.notnull(row['ecl_lat']) else None
+        astrometric_params_solved = int(row['astrometric_params_solved']) if pd.notnull(row['astrometric_params_solved']) else None
 
-        # If any essential parameters are missing, return zero correction
-        if pd.isnull(phot_g_mean_mag) or pd.isnull(ecl_lat) or pd.isnull(astrometric_params_solved):
+        # If essential parameters are missing, return zero correction
+        if phot_g_mean_mag is None or ecl_lat is None or astrometric_params_solved is None:
             return 0.0
 
-        # Handle specific cases for astrometric_params_solved value
+        # Adjust values based on astrometric_params_solved
         if astrometric_params_solved == 31:
-            if pd.isnull(pseudocolour):
+            if pseudocolour is None:
                 pseudocolour = 0.0
         elif astrometric_params_solved == 95:
             nu_eff_used_in_astrometry = None
-            if pd.isnull(pseudocolour):
+            if pseudocolour is None:
                 st.write("Warning: Pseudocolour is required for a 6-parameter solution.")
                 pseudocolour = 0.0
         else:
             pseudocolour = None
             nu_eff_used_in_astrometry = None
 
-        # Call zero-point correction function
+        # Call zero-point correction function with validated inputs
         zero_point = zpt.get_zpt(phot_g_mean_mag, nu_eff_used_in_astrometry,
                                  pseudocolour, ecl_lat, astrometric_params_solved)
         return zero_point
