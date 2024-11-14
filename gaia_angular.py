@@ -132,7 +132,7 @@ def compute_corrected_parallax_and_distance(row):
     if pd.notnull(row['parallax']) and pd.notnull(row['parallax_error']):
         parallax = ufloat(row['parallax'], row['parallax_error'])
         corrected_parallax = parallax - zero_point
-        distance = 1000 / corrected_parallax 
+        distance = 1000 / corrected_parallax  
         corrected_parallax_value = corrected_parallax.nominal_value
         corrected_parallax_error = corrected_parallax.std_dev
         distance_pc = distance.nominal_value
@@ -150,6 +150,7 @@ def compute_corrected_parallax_and_distance(row):
         'distance_pc': distance_pc,
         'distance_error_pc': distance_error_pc
     })
+
 
 st.title("Gaia Query: Calculating Distances and Angular Separations")
 st.markdown("""
@@ -286,6 +287,7 @@ if submitted:
                     "Magnitude [Gaia G]": [closest_star['phot_g_mean_mag']],
                 })
 
+              
                 gaia_results = gaia_results.drop(closest_star.name)
 
                 closest_stars = pd.DataFrame({
