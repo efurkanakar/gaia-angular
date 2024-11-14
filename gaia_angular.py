@@ -99,31 +99,40 @@ def query_simbad(star_name):
     return custom_simbad.query_object(star_name)
 
 def compute_zero_point_correction(row):
-    phot_g_mean_mag = row['phot_g_mean_mag']
-    nu_eff_used_in_astrometry = row['nu_eff_used_in_astrometry']
-    pseudocolour = row['pseudocolour']
-    ecl_lat = row['ecl_lat']
-    astrometric_params_solved = row['astrometric_params_solved']
-
-    if astrometric_params_solved == 31:
-        if pd.isnull(pseudocolour):
-            pseudocolour = 0.0
-    elif astrometric_params_solved == 95:
-        nu_eff_used_in_astrometry = None
-        if pd.isnull(pseudocolour):
-            st.write("Warning: Pseudocolour is required for a 6-parameter solution.")
-            pseudocolour = 0.0
-    else:
-        pseudocolour = None
-        nu_eff_used_in_astrometry = None
-
     try:
+        # Retrieve parameters, skipping calculation if any required fields are missing
+        phot_g_mean_mag = row['phot_g_mean_mag']
+        nu_eff_used_in_astrometry = row['nu_eff_used_in_astrometry']
+        pseudocolour = row['pseudocolour']
+        ecl_lat = row['ecl_lat']
+        astrometric_params_solved = row['astrometric_params_solved']
+
+        # If any essential parameters are missing, return zero correction
+        if pd.isnull(phot_g_mean_mag) or pd.isnull(ecl_lat) or pd.isnull(astrometric_params_solved):
+            return 0.0
+
+        # Handle specific cases for astrometric_params_solved value
+        if astrometric_params_solved == 31:
+            if pd.isnull(pseudocolour):
+                pseudocolour = 0.0
+        elif astrometric_params_solved == 95:
+            nu_eff_used_in_astrometry = None
+            if pd.isnull(pseudocolour):
+                st.write("Warning: Pseudocolour is required for a 6-parameter solution.")
+                pseudocolour = 0.0
+        else:
+            pseudocolour = None
+            nu_eff_used_in_astrometry = None
+
+        # Call zero-point correction function
         zero_point = zpt.get_zpt(phot_g_mean_mag, nu_eff_used_in_astrometry,
                                  pseudocolour, ecl_lat, astrometric_params_solved)
-    except Exception as e:
-        zero_point = 0.0
+        return zero_point
 
-    return zero_point
+    except Exception as e:
+        st.write("Error calculating zero point correction:", e)
+        return 0.0
+
 
 def compute_corrected_parallax_and_distance(row):
     zero_point = compute_zero_point_correction(row)
