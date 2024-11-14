@@ -1,6 +1,6 @@
 <h1>Gaia Query: Calculating Distances and Angular Separations</h1>
 
-<p>This repository contains a Streamlit application that queries the Gaia DR3 catalog for nearby objects and computes various properties, including angular separations and corrected distances from Earth by applying parallax zero-point corrections as per Lindegren et al. (2021). The application also intelligently selects the target object based on variable object status and parallax comparison with SIMBAD data.</p>
+<p>This repository contains a Streamlit application that queries the Gaia DR3 catalog for nearby objects and computes various properties, including angular separations and corrected distances from Earth by applying parallax zero-point corrections as per Lindegren et al. (2021). The application also intelligently selects the target object based on Gaia DR3 designation availability, variable object status, and parallax comparison with SIMBAD data.</p>
 
 <h2>Quick Start</h2>
 
@@ -24,7 +24,7 @@
     <li><strong>Gaia DR3 Catalog Search:</strong> Searches for nearby objects within a user-defined radius in the Gaia DR3 catalog.</li>
     <li><strong>Angular Distance Calculation:</strong> Calculates angular distances between the target object and nearby objects using the Haversine formula, including uncertainties.</li>
     <li><strong>Parallax Zero-Point Correction:</strong> Applies parallax zero-point corrections to Gaia data as per Lindegren et al. (2021).</li>
-    <li><strong>Intelligent Target Object Selection:</strong> Selects the target object from Gaia data based on variable object status and parallax comparison with SIMBAD data.</li>
+    <li><strong>Intelligent Target Object Selection:</strong> Selects the target object from Gaia data based on Gaia DR3 designation, variable object status, and parallax comparison with SIMBAD data.</li>
     <li><strong>Results Display:</strong> Presents a sorted table of nearby objects, including corrected parallaxes, distances, and angular separations, with the target object highlighted.</li>
 </ul>
 
@@ -57,38 +57,34 @@ source venv/bin/activate  # On Windows, use venv\Scripts\activate</code></pre>
         <ul>
             <li>The application queries the SIMBAD database using the provided object name.</li>
             <li>It retrieves the Right Ascension (RA), Declination (Dec), and parallax value of the object.</li>
+            <li>If available, the Gaia DR3 designation from SIMBAD is prioritized.</li>
         </ul>
     </li>
-    <li><strong>Query Gaia DR3 Catalog for Nearby Objects:</strong>
-        <ul>
-            <li>Using the coordinates from SIMBAD, the application searches the Gaia DR3 catalog for objects within a user-defined radius.</li>
-        </ul>
-    </li>
-    <li><strong>Define Parallax Threshold:</strong>
-        <ul>
-            <li>A parallax difference threshold is calculated to determine acceptable matches between Gaia and SIMBAD parallax values.</li>
-            <li>The threshold is defined as the maximum of <strong>0.1 mas</strong> or <strong>5%</strong> of the SIMBAD parallax value.</li>
-        </ul>
-    </li>
-    <li><strong>Select Target Object from Gaia Data:</strong>
+    <li><strong>Select Target Object from Gaia Data Based on Priority Criteria:</strong>
         <ol>
-            <li><strong>Step 1: Check for Variable Objects</strong>
+            <li><strong>Step 1: Use Gaia DR3 Designation (if available):</strong>
                 <ul>
-                    <li>Filter Gaia results for objects marked as variable (<code>phot_variable_flag == 'VARIABLE'</code>).</li>
-                    <li>Compute the absolute difference between their parallaxes and the SIMBAD parallax.</li>
-                    <li>If variable objects exist within the parallax threshold, select the one with the smallest parallax difference as the target object.</li>
+                    <li>If SIMBAD provides a Gaia DR3 designation, the application directly queries Gaia DR3 with this designation.</li>
+                    <li>If the Gaia DR3 entry exists, this object is chosen as the target, and other steps are skipped.</li>
                 </ul>
             </li>
-            <li><strong>Step 2: If No Matching Variable Objects</strong>
+            <li><strong>Step 2: Use Parallax and Variable Object Criteria:</strong>
                 <ul>
-                    <li>If no variable objects meet the criteria, consider all objects in the Gaia results.</li>
-                    <li>Compute the absolute parallax differences for all objects.</li>
-                    <li>If any objects are within the parallax threshold, select the one with the smallest parallax difference as the target object.</li>
+                    <li>If the Gaia DR3 designation is unavailable, the application searches for nearby Gaia DR3 objects using the coordinates from SIMBAD within a user-defined radius.</li>
+                    <li>If SIMBAD provides a parallax value, the Gaia results are filtered for objects marked as variable (<code>phot_variable_flag == 'VARIABLE'</code>) and with parallax values close to the SIMBAD value.</li>
+                    <li>The application uses a parallax threshold defined as the maximum of <strong>0.1 mas</strong> or <strong>5%</strong> of the SIMBAD parallax value.</li>
+                    <li>If variable objects within this threshold exist, the object with the smallest parallax difference is selected as the target.</li>
                 </ul>
             </li>
-            <li><strong>Step 3: If No Objects Match Parallax Criteria</strong>
+            <li><strong>Step 3: Consider All Objects by Parallax (if no variables match):</strong>
                 <ul>
-                    <li>If no objects meet the parallax criteria, default to selecting the object with the smallest angular distance from the SIMBAD coordinates.</li>
+                    <li>If no variable objects meet the parallax criteria, all nearby Gaia objects are considered.</li>
+                    <li>The object with the smallest parallax difference within the threshold is selected as the target.</li>
+                </ul>
+            </li>
+            <li><strong>Step 4: Fallback to Angular Distance:</strong>
+                <ul>
+                    <li>If no Gaia objects meet the parallax criteria, the application selects the object with the smallest angular distance from the SIMBAD coordinates as the target.</li>
                 </ul>
             </li>
         </ol>
@@ -97,17 +93,17 @@ source venv/bin/activate  # On Windows, use venv\Scripts\activate</code></pre>
 
 <h3>Rationale Behind the Selection Logic</h3>
 <ul>
-    <li><strong>Preference for Variable Objects:</strong> The application prioritizes Gaia entries marked as variable when matching with SIMBAD data.</li>
+    <li><strong>Preference for Gaia DR3 Designation:</strong> Directly matching a Gaia DR3 designation ensures the highest accuracy.</li>
+    <li><strong>Preference for Variable Objects:</strong> When matching with SIMBAD data, the application prioritizes Gaia entries marked as variable.</li>
     <li><strong>Parallax Comparison:</strong> Ensures the selected Gaia object corresponds to the same physical object as in SIMBAD.</li>
-    <li><strong>Fallback to Angular Distance:</strong> If parallax data is insufficient or not matching, angular proximity becomes the deciding factor.</li>
+    <li><strong>Fallback to Angular Distance:</strong> If parallax data is insufficient or does not match, angular proximity becomes the deciding factor.</li>
 </ul>
 
 <h3>Example Scenario</h3>
 <p>For an object like <strong>KIC 10544976</strong>:</p>
 <ul>
-    <li>SIMBAD provides a parallax of approximately <strong>1.9345 mas</strong>.</li>
-    <li>The Gaia results include an object with a parallax of <strong>1.934524097171672 mas</strong> but not marked as variable.</li>
-    <li>Using the logic above, the application selects this object as the target because its parallax closely matches the SIMBAD value, despite not being marked as variable.</li>
+    <li>SIMBAD provides a Gaia DR3 designation, which is found in the Gaia catalog.</li>
+    <li>The Gaia object with this designation is selected as the target immediately, skipping further criteria.</li>
 </ul>
 
 <h2 id="dependencies">Dependencies</h2>
@@ -132,6 +128,3 @@ source venv/bin/activate  # On Windows, use venv\Scripts\activate</code></pre>
 
 <h2 id="license">License</h2>
 <p>This project is licensed under the Apache License 2.0 - see the <a href="LICENSE">LICENSE</a> file for details.</p>
-
-</body>
-</html>
