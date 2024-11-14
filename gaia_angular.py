@@ -105,6 +105,12 @@ def compute_zero_point_correction(row):
     ecl_lat = row['ecl_lat']
     astrometric_params_solved = row['astrometric_params_solved']
 
+    # Handle missing ecl_lat
+    if pd.isnull(ecl_lat):
+        coord = SkyCoord(ra=row['ra']*u.degree, dec=row['dec']*u.degree)
+        ecl_lat = coord.barycentricmeanecliptic.lat.degree
+        row['ecl_lat'] = ecl_lat
+
     if astrometric_params_solved == 31:
         if pd.isnull(pseudocolour):
             pseudocolour = 0.0
@@ -132,7 +138,7 @@ def compute_corrected_parallax_and_distance(row):
     if pd.notnull(row['parallax']) and pd.notnull(row['parallax_error']):
         parallax = ufloat(row['parallax'], row['parallax_error'])
         corrected_parallax = parallax - zero_point
-        distance = 1000 / corrected_parallax  
+        distance = 1000 / corrected_parallax 
         corrected_parallax_value = corrected_parallax.nominal_value
         corrected_parallax_error = corrected_parallax.std_dev
         distance_pc = distance.nominal_value
@@ -150,7 +156,6 @@ def compute_corrected_parallax_and_distance(row):
         'distance_pc': distance_pc,
         'distance_error_pc': distance_error_pc
     })
-
 
 st.title("Gaia Query: Calculating Distances and Angular Separations")
 st.markdown("""
@@ -244,11 +249,19 @@ if submitted:
                     closest_star = gaia_results.loc[gaia_results['angular_distance'].idxmin()]
 
             if closest_star is not None:
+                # Handle missing critical fields for zero-point correction
+                critical_fields = ['phot_g_mean_mag', 'nu_eff_used_in_astrometry', 'pseudocolour', 'ecl_lat', 'astrometric_params_solved']
+                for field in critical_fields:
+                    if field not in closest_star or pd.isnull(closest_star[field]):
+                        closest_star[field] = None  # or set a default value if appropriate
+
+                # For the closest star
                 closest_star = closest_star.copy()
                 closest_star_new_cols = compute_corrected_parallax_and_distance(closest_star)
                 for col in closest_star_new_cols.index:
                     closest_star[col] = closest_star_new_cols[col]
 
+                # For other stars
                 gaia_results = gaia_results.copy()
                 gaia_new_cols = gaia_results.apply(compute_corrected_parallax_and_distance, axis=1)
                 gaia_results = pd.concat([gaia_results, gaia_new_cols], axis=1)
@@ -287,7 +300,6 @@ if submitted:
                     "Magnitude [Gaia G]": [closest_star['phot_g_mean_mag']],
                 })
 
-              
                 gaia_results = gaia_results.drop(closest_star.name)
 
                 closest_stars = pd.DataFrame({
