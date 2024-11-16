@@ -197,7 +197,6 @@ if submitted:
         if gaia_designation is not None:
             gaia_results = query_gaia_by_designation(gaia_designation)
             if not gaia_results.empty:
-                st.write(f"Target star found in Gaia DR3 with designation {gaia_designation}.")
                 closest_star = gaia_results.iloc[0]
                 selection_method = 'designation'
                 gaia_nearby = query_gaia_for_star(ra_deg, dec_deg, search_radius_deg)
@@ -250,15 +249,21 @@ if submitted:
                     selection_method = 'angular_distance'
 
             if closest_star is not None:
-                # Display the message corresponding to the selection method
-                if selection_method == 'designation':
-                    st.write("The target star was identified via SIMBAD designation. This is the most reliable method.")
-                elif selection_method == 'parallax_variable':
-                    st.write("The target star was identified using variable flag and parallax matching. The star is likely your target, but please confirm.")
-                elif selection_method == 'parallax':
-                    st.write("The target star was identified using parallax matching. The star is likely your target, but please confirm.")
-                elif selection_method == 'angular_distance':
-                    st.write("The target star was identified using the smallest angular distance. Please verify that this is the correct star.")
+                # Construct a single message including the method and color
+                color_dict = {
+                    'designation': 'green',
+                    'parallax_variable': 'orange',
+                    'parallax': 'red',
+                    'angular_distance': 'purple'
+                }
+                method_messages = {
+                    'designation': f"The target star was identified in Gaia DR3 using the SIMBAD designation (highlighted in {color_dict['designation']}). This is the most reliable method.",
+                    'parallax_variable': f"The target star was identified using variable flag and parallax matching (highlighted in {color_dict['parallax_variable']}). The star is likely your target, but please confirm.",
+                    'parallax': f"The target star was identified using parallax matching (highlighted in {color_dict['parallax']}). The star is possibly your target, but please confirm.",
+                    'angular_distance': f"The target star was identified using the smallest angular distance (highlighted in {color_dict['angular_distance']}). Please verify that this is the correct star."
+                }
+
+                st.write(method_messages.get(selection_method, ""))
 
                 closest_star = closest_star.copy()
                 closest_star_new_cols = compute_corrected_parallax_and_distance(closest_star)
@@ -331,16 +336,7 @@ if submitted:
                 # Define a function to highlight the target star based on selection method
                 def highlight_target_row(row):
                     if row.name == 0:
-                        if selection_method == 'designation':
-                            color = 'DarkGreen'
-                        elif selection_method == 'parallax_variable':
-                            color = 'DarkOrange'
-                        elif selection_method == 'parallax':
-                            color = 'DarkRed'
-                        elif selection_method == 'angular_distance':
-                            color = 'Purple'
-                        else:
-                            color = 'LightGrey'
+                        color = color_dict.get(selection_method, 'LightGrey')
                         return ['background-color: {}'.format(color) for _ in row]
                     else:
                         return ['' for _ in row]
@@ -348,24 +344,6 @@ if submitted:
                 styled_table = full_table.style.apply(highlight_target_row, axis=1).set_properties(**{'text-align': 'center'})
 
                 st.write("Nearby Objects")
-
-                # Display the legend corresponding only to the selection method used
-                legend_message = "<p style='font-size:16px; font-style:italic;'>The target star is highlighted based on the selection method:</p>"
-
-                if selection_method == 'designation':
-                    legend_message += "<ul><li style='color:DarkGreen;'>Green: Identified via SIMBAD designation (most reliable).</li></ul>"
-                elif selection_method == 'parallax_variable':
-                    legend_message += "<ul><li style='color:DarkOrange;'>Orange: Identified via variable flag and parallax matching (likely your star, please confirm).</li></ul>"
-                elif selection_method == 'parallax':
-                    legend_message += "<ul><li style='color:DarkRed;'>Red: Identified via parallax matching (likely your star, please confirm).</li></ul>"
-                elif selection_method == 'angular_distance':
-                    legend_message += "<ul><li style='color:Purple;'>Purple: Identified via smallest angular distance (please verify).</li></ul>"
-                else:
-                    legend_message = ""
-
-                if legend_message:
-                    st.markdown(legend_message, unsafe_allow_html=True)
-
                 st.dataframe(styled_table, use_container_width=True, hide_index=True)
             else:
                 st.write("No matching star found due to parallax mismatch.")
