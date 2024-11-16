@@ -7,159 +7,150 @@ from astroquery.gaia import Gaia
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 from zero_point import zpt
-import logging
-
-# Logging ayarları
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 
 st.set_page_config(layout="wide")
-
-try:
-    zpt.load_tables()
-    logging.info("Zero-point tables successfully loaded.")
-except Exception as e:
-    logging.error(f"Error loading zero-point tables: {e}")
-    st.write(f"Error loading zero-point tables: {e}")
+zpt.load_tables()
 
 def angular_distance_with_uncertainties(ra1_deg, dec1_deg, ra2_deg, dec2_deg,
                                         ra1_err_mas, dec1_err_mas, ra2_err_mas, dec2_err_mas):
-    try:
-        ra1_err_deg = ra1_err_mas / 3600000
-        dec1_err_deg = dec1_err_mas / 3600000
-        ra2_err_deg = ra2_err_mas / 3600000
-        dec2_err_deg = dec2_err_mas / 3600000
+    ra1_err_deg = ra1_err_mas / 3600000
+    dec1_err_deg = dec1_err_mas / 3600000
+    ra2_err_deg = ra2_err_mas / 3600000
+    dec2_err_deg = dec2_err_mas / 3600000
 
-        ra1 = ufloat(ra1_deg, ra1_err_deg)
-        dec1 = ufloat(dec1_deg, dec1_err_deg)
-        ra2 = ufloat(ra2_deg, ra2_err_deg)
-        dec2 = ufloat(dec2_deg, dec2_err_deg)
+    ra1 = ufloat(ra1_deg, ra1_err_deg)
+    dec1 = ufloat(dec1_deg, dec1_err_deg)
+    ra2 = ufloat(ra2_deg, ra2_err_deg)
+    dec2 = ufloat(dec2_deg, dec2_err_deg)
 
-        delta_ra = radians(ra2 - ra1)
-        delta_dec = radians(dec2 - dec1)
+    delta_ra = radians(ra2 - ra1)
+    delta_dec = radians(dec2 - dec1)
 
-        a = sin(delta_dec / 2)**2 + cos(radians(dec1)) * cos(radians(dec2)) * sin(delta_ra / 2)**2
-        theta_arcseconds = degrees(2 * asin(sqrt(a))) * 3600
+    a = sin(delta_dec / 2)**2 + cos(radians(dec1)) * cos(radians(dec2)) * sin(delta_ra / 2)**2
+    theta_arcseconds = degrees(2 * asin(sqrt(a))) * 3600
 
-        return theta_arcseconds
-    except Exception as e:
-        logging.error(f"Error calculating angular distance: {e}")
-        return None
+    return theta_arcseconds
 
 @st.cache_data
 def query_gaia_for_star(ra, dec, radius):
-    try:
-        query = f"""
-        SELECT
-            DESIGNATION,
-            SOURCE_ID,
-            ra,
-            ra_error,
-            dec,
-            dec_error,
-            parallax,
-            parallax_error,
-            pm,
-            phot_g_mean_mag,
-            ruwe,
-            phot_variable_flag,
-            nu_eff_used_in_astrometry,
-            pseudocolour,
-            astrometric_params_solved,
-            ecl_lat
-        FROM
-            gaiadr3.gaia_source
-        WHERE
-            CONTAINS(
-                POINT('ICRS', ra, dec),
-                CIRCLE('ICRS', {ra}, {dec}, {radius})
-            ) = 1
-        """
-        job = Gaia.launch_job(query)
-        results = job.get_results()
-        logging.info(f"Gaia query successful for coordinates RA: {ra}, Dec: {dec}, Radius: {radius}")
-        return results.to_pandas()
-    except Exception as e:
-        logging.error(f"Error querying Gaia for star: {e}")
-        return pd.DataFrame()
+    query = f"""
+    SELECT
+        DESIGNATION,
+        SOURCE_ID,
+        ra,
+        ra_error,
+        dec,
+        dec_error,
+        parallax,
+        parallax_error,
+        pm,
+        phot_g_mean_mag,
+        ruwe,
+        phot_variable_flag,
+        nu_eff_used_in_astrometry,
+        pseudocolour,
+        astrometric_params_solved,
+        ecl_lat
+    FROM
+        gaiadr3.gaia_source
+    WHERE
+        CONTAINS(
+            POINT('ICRS', ra, dec),
+            CIRCLE('ICRS', {ra}, {dec}, {radius})
+        ) = 1
+    """
+    job = Gaia.launch_job(query)
+    results = job.get_results()
+    return results.to_pandas()
 
 @st.cache_data
 def query_gaia_by_designation(designation):
-    try:
-        query = f"""
-        SELECT
-            DESIGNATION,
-            SOURCE_ID,
-            ra,
-            ra_error,
-            dec,
-            dec_error,
-            parallax,
-            parallax_error,
-            pm,
-            phot_g_mean_mag,
-            ruwe,
-            phot_variable_flag,
-            nu_eff_used_in_astrometry,
-            pseudocolour,
-            astrometric_params_solved,
-            ecl_lat
-        FROM
-            gaiadr3.gaia_source
-        WHERE
-            DESIGNATION = '{designation}'
-        """
-        job = Gaia.launch_job(query)
-        results = job.get_results()
-        logging.info(f"Gaia query successful for designation: {designation}")
-        return results.to_pandas()
-    except Exception as e:
-        logging.error(f"Error querying Gaia by designation: {e}")
-        return pd.DataFrame()
+    query = f"""
+    SELECT
+        DESIGNATION,
+        SOURCE_ID,
+        ra,
+        ra_error,
+        dec,
+        dec_error,
+        parallax,
+        parallax_error,
+        pm,
+        phot_g_mean_mag,
+        ruwe,
+        phot_variable_flag,
+        nu_eff_used_in_astrometry,
+        pseudocolour,
+        astrometric_params_solved,
+        ecl_lat
+    FROM
+        gaiadr3.gaia_source
+    WHERE
+        DESIGNATION = '{designation}'
+    """
+    job = Gaia.launch_job(query)
+    results = job.get_results()
+    return results.to_pandas()
 
 @st.cache_data
 def query_simbad(star_name):
-    try:
-        custom_simbad = Simbad()
-        custom_simbad.add_votable_fields('ra', 'dec', 'plx', 'ids')
-        result = custom_simbad.query_object(star_name)
-        logging.info(f"Simbad query successful for star name: {star_name}")
-        return result
-    except Exception as e:
-        logging.error(f"Error querying Simbad for star name: {star_name}: {e}")
-        return None
+    custom_simbad = Simbad()
+    custom_simbad.add_votable_fields('ra', 'dec', 'plx', 'ids')
+    return custom_simbad.query_object(star_name)
 
 def compute_zero_point_correction(row):
+    phot_g_mean_mag = row['phot_g_mean_mag']
+    nu_eff_used_in_astrometry = row['nu_eff_used_in_astrometry']
+    pseudocolour = row['pseudocolour']
+    ecl_lat = row['ecl_lat']
+    astrometric_params_solved = row['astrometric_params_solved']
+
+    if astrometric_params_solved == 31:
+        if pd.isnull(pseudocolour):
+            pseudocolour = 0.0
+    elif astrometric_params_solved == 95:
+        nu_eff_used_in_astrometry = None
+        if pd.isnull(pseudocolour):
+            st.write("Warning: Pseudocolour is required for a 6-parameter solution.")
+            pseudocolour = 0.0
+    else:
+        pseudocolour = None
+        nu_eff_used_in_astrometry = None
+
     try:
-        phot_g_mean_mag = row['phot_g_mean_mag']
-        nu_eff_used_in_astrometry = row['nu_eff_used_in_astrometry']
-        pseudocolour = row['pseudocolour']
-        ecl_lat = row['ecl_lat']
-        astrometric_params_solved = row['astrometric_params_solved']
-
-        # Parametrelerin kontrolü
-        if astrometric_params_solved == 31:
-            if pd.isnull(pseudocolour):
-                pseudocolour = 0.0
-        elif astrometric_params_solved == 95:
-            nu_eff_used_in_astrometry = None
-            if pd.isnull(pseudocolour):
-                st.write("Warning: Pseudocolour is required for a 6-parameter solution.")
-                pseudocolour = 0.0
-        else:
-            pseudocolour = None
-            nu_eff_used_in_astrometry = None
-
-        # Zero-point düzeltmesini hesapla
         zero_point = zpt.get_zpt(phot_g_mean_mag, nu_eff_used_in_astrometry,
                                  pseudocolour, ecl_lat, astrometric_params_solved)
-        st.write(f"Zero-point correction calculated: {zero_point}")
-        return zero_point
     except Exception as e:
-        # Hata mesajını ekrana yazdır
-        st.write(f"Error calculating zero-point correction: {e}")
-        # Hatanın detaylarını göstermek için raise yapabilirsiniz
-        raise
+        st.write(e)
+        zero_point = 0.0
 
+    return zero_point
+
+def compute_corrected_parallax_and_distance(row):
+    zero_point = compute_zero_point_correction(row)
+    parallax_zero_point = zero_point
+
+    if pd.notnull(row['parallax']) and pd.notnull(row['parallax_error']):
+        parallax = ufloat(row['parallax'], row['parallax_error'])
+        corrected_parallax = parallax - zero_point
+        distance = 1000 / corrected_parallax
+        corrected_parallax_value = corrected_parallax.nominal_value
+        corrected_parallax_error = corrected_parallax.std_dev
+        distance_pc = distance.nominal_value
+        distance_error_pc = distance.std_dev
+    else:
+        corrected_parallax_value = None
+        corrected_parallax_error = None
+        distance_pc = None
+        distance_error_pc = None
+
+    return pd.Series({
+        'parallax_zero_point': parallax_zero_point,
+        'corrected_parallax': corrected_parallax_value,
+        'corrected_parallax_error': corrected_parallax_error,
+        'distance_pc': distance_pc,
+        'distance_error_pc': distance_error_pc
+    })
 
 st.title("Gaia Query: Calculating Distances and Angular Separations")
 st.markdown("""
