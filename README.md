@@ -20,20 +20,8 @@
 
 <h2 id="features">Features</h2>
 <ul>
-    <li><strong>SIMBAD Database Query:</strong> Retrieves coordinates (RA and Dec) and parallax of a specified object from the SIMBAD database.</li>
-    <li><strong>Gaia DR3 Catalog Search:</strong> Searches for nearby objects within a user-defined radius in the Gaia DR3 catalog.</li>
-    <li><strong>Angular Distance Calculation:</strong> Calculates angular distances between the target object and nearby objects using the Haversine formula, including uncertainties.</li>
-    <li><strong>Parallax Zero-Point Correction:</strong> Applies parallax zero-point corrections to Gaia data as per Lindegren et al. (2021).</li>
-    <li><strong>Intelligent Target Object Selection:</strong> Selects the target object from Gaia data based on Gaia DR3 designation, variable object status, and parallax comparison with SIMBAD data.</li>
-    <li><strong>Color-Coded Results:</strong> Highlights the target object based on the selection method used:
-        <ul>
-            <li><span style="color:green;">Green:</span> Selected using SIMBAD's Gaia DR3 designation (most reliable).</li>
-            <li><span style="color:orange;">Orange:</span> Selected using variable flag and parallax matching (reliable).</li>
-            <li><span style="color:red;">Red:</span> Selected using parallax matching (less reliable).</li>
-            <li><span style="color:purple;">Purple:</span> Selected using angular distance (least reliable).</li>
-        </ul>
-    </li>
-    <li><strong>Results Display:</strong> Presents a sorted table of nearby objects, including corrected parallaxes, distances, and angular separations, with the target object highlighted.</li>
+    <li>Calculates angular separations between two objects using the Haversine formula.</li>
+    <li>Computes corrected distances using Lindegren et al. (2021) parallax zero-point corrections.</li>
 </ul>
 
 <h2 id="installation">Installation</h2>
@@ -115,17 +103,15 @@ source venv/bin/activate  # On Windows, use venv\Scripts\activate</code></pre>
 </ul>
 
 <h2 id="dependencies">Dependencies</h2>
-<p>The application relies on several Python packages:</p>
 <ul>
-    <li><strong>Streamlit:</strong> For building the interactive web application.</li>
-    <li><strong>Pandas:</strong> For data manipulation and analysis.</li>
-    <li><strong>Astroquery:</strong> For querying astronomical databases like SIMBAD and Gaia.</li>
-    <li><strong>Astropy:</strong> For astronomical calculations and coordinate transformations.</li>
-    <li><strong>Uncertainties:</strong> For calculations involving uncertainties.</li>
-    <li><strong>ZeroPoint Module:</strong> For applying parallax zero-point corrections (ensure you have the <code>zero_point</code> module installed).</li>
+    <li>streamlit</li>
+    <li>pandas</li>
+    <li>astroquery</li>
+    <li>astropy</li>
+    <li>uncertainties</li>
+    <li>numpy>=1.20</li>
+    <li>zero_point</li>
 </ul>
-<p>Ensure all dependencies are installed by running:</p>
-<pre><code>pip install -r requirements.txt</code></pre>
 
 <h2 id="acknowledgements">Acknowledgements</h2>
 <ul>
