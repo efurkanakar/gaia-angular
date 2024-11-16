@@ -109,7 +109,7 @@ source venv/bin/activate  # On Windows, use venv\Scripts\activate</code></pre>
     <li>astroquery</li>
     <li>astropy</li>
     <li>uncertainties</li>
-    <li>numpy>=1.20</li>
+    <li>numpy==1.26.4</li>
     <li>zero_point</li>
 </ul>
 
