@@ -1,6 +1,6 @@
 <h1>Gaia Query: Calculating Distances and Angular Separations</h1>
 
-<p>This repository contains a Streamlit application that queries the Gaia DR3 catalog for nearby objects and computes various properties, including angular separations and corrected distances from Earth by applying parallax zero-point corrections as per Lindegren et al. (2021). The application also intelligently selects the target object based on Gaia DR3 designation availability, variable object status, and parallax comparison with SIMBAD data.</p>
+<p>This repository contains a Streamlit application that queries the Gaia DR3 catalog for nearby objects and computes various properties, including angular separations and corrected distances from Earth by applying parallax zero-point corrections as per Lindegren et al. (2021). The application also intelligently selects the target object based on Gaia DR3 designation availability, variable object status, and parallax comparison with SIMBAD data. The results include clear color-coded indications for the method used to identify the target object.</p>
 
 <h2>Quick Start</h2>
 
@@ -25,6 +25,14 @@
     <li><strong>Angular Distance Calculation:</strong> Calculates angular distances between the target object and nearby objects using the Haversine formula, including uncertainties.</li>
     <li><strong>Parallax Zero-Point Correction:</strong> Applies parallax zero-point corrections to Gaia data as per Lindegren et al. (2021).</li>
     <li><strong>Intelligent Target Object Selection:</strong> Selects the target object from Gaia data based on Gaia DR3 designation, variable object status, and parallax comparison with SIMBAD data.</li>
+    <li><strong>Color-Coded Results:</strong> Highlights the target object based on the selection method used:
+        <ul>
+            <li><span style="color:green;">Green:</span> Selected using SIMBAD's Gaia DR3 designation (most reliable).</li>
+            <li><span style="color:orange;">Orange:</span> Selected using variable flag and parallax matching (reliable).</li>
+            <li><span style="color:red;">Red:</span> Selected using parallax matching (less reliable).</li>
+            <li><span style="color:purple;">Purple:</span> Selected using angular distance (least reliable).</li>
+        </ul>
+    </li>
     <li><strong>Results Display:</strong> Presents a sorted table of nearby objects, including corrected parallaxes, distances, and angular separations, with the target object highlighted.</li>
 </ul>
 
@@ -50,7 +58,7 @@ source venv/bin/activate  # On Windows, use venv\Scripts\activate</code></pre>
 <p>This will open the application in your default web browser.</p>
 
 <h2 id="target-object-selection-logic">Target Object Selection Logic</h2>
-<p>An essential feature of this application is the intelligent selection of the target object from Gaia DR3 data based on SIMBAD information and specific criteria. The selection process is designed to ensure accurate identification of the target object. The steps are as follows:</p>
+<p>An essential feature of this application is the intelligent selection of the target object from Gaia DR3 data based on SIMBAD information and specific criteria. The selection process is designed to ensure accurate identification of the target object, with a color-coded highlight for each method. The steps are as follows:</p>
 
 <ol>
     <li><strong>Retrieve Target Object Data from SIMBAD:</strong>
@@ -65,26 +73,26 @@ source venv/bin/activate  # On Windows, use venv\Scripts\activate</code></pre>
             <li><strong>Step 1: Use Gaia DR3 Designation (if available):</strong>
                 <ul>
                     <li>If SIMBAD provides a Gaia DR3 designation, the application directly queries Gaia DR3 with this designation.</li>
-                    <li>If the Gaia DR3 entry exists, this object is chosen as the target, and other steps are skipped.</li>
+                    <li>The object is highlighted in <span style="color:green;">green</span>, indicating the most reliable method.</li>
                 </ul>
             </li>
             <li><strong>Step 2: Use Parallax and Variable Object Criteria:</strong>
                 <ul>
                     <li>If the Gaia DR3 designation is unavailable, the application searches for nearby Gaia DR3 objects using the coordinates from SIMBAD within a user-defined radius.</li>
                     <li>If SIMBAD provides a parallax value, the Gaia results are filtered for objects marked as variable (<code>phot_variable_flag == 'VARIABLE'</code>) and with parallax values close to the SIMBAD value.</li>
-                    <li>The application uses a parallax threshold defined as the maximum of <strong>0.1 mas</strong> or <strong>5%</strong> of the SIMBAD parallax value.</li>
-                    <li>If variable objects within this threshold exist, the object with the smallest parallax difference is selected as the target.</li>
+                    <li>The object is highlighted in <span style="color:orange;">orange</span>, indicating a reliable selection.</li>
                 </ul>
             </li>
             <li><strong>Step 3: Consider All Objects by Parallax (if no variables match):</strong>
                 <ul>
                     <li>If no variable objects meet the parallax criteria, all nearby Gaia objects are considered.</li>
-                    <li>The object with the smallest parallax difference within the threshold is selected as the target.</li>
+                    <li>The object with the smallest parallax difference within the threshold is selected as the target and highlighted in <span style="color:red;">red</span>.</li>
                 </ul>
             </li>
             <li><strong>Step 4: Fallback to Angular Distance:</strong>
                 <ul>
                     <li>If no Gaia objects meet the parallax criteria, the application selects the object with the smallest angular distance from the SIMBAD coordinates as the target.</li>
+                    <li>The object is highlighted in <span style="color:purple;">purple</span>, indicating the least reliable method.</li>
                 </ul>
             </li>
         </ol>
