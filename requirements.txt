@@ -1,6 +1,6 @@
 streamlit
+gaiadr3-zeropoint
 pandas
 uncertainties
 astroquery
 astropy
-gaiadr3-zeropoint
