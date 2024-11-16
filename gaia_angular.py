@@ -64,9 +64,38 @@ def query_gaia_for_star(ra, dec, radius):
     return results.to_pandas()
 
 @st.cache_data
+def query_gaia_by_designation(designation):
+    query = f"""
+    SELECT
+        DESIGNATION,
+        SOURCE_ID,
+        ra,
+        ra_error,
+        dec,
+        dec_error,
+        parallax,
+        parallax_error,
+        pm,
+        phot_g_mean_mag,
+        ruwe,
+        phot_variable_flag,
+        nu_eff_used_in_astrometry,
+        pseudocolour,
+        astrometric_params_solved,
+        ecl_lat
+    FROM
+        gaiadr3.gaia_source
+    WHERE
+        DESIGNATION = '{designation}'
+    """
+    job = Gaia.launch_job(query)
+    results = job.get_results()
+    return results.to_pandas()
+
+@st.cache_data
 def query_simbad(star_name):
     custom_simbad = Simbad()
-    custom_simbad.add_votable_fields('ra', 'dec', 'plx')
+    custom_simbad.add_votable_fields('ra', 'dec', 'plx', 'ids')
     return custom_simbad.query_object(star_name)
 
 def compute_zero_point_correction(row):
@@ -103,7 +132,7 @@ def compute_corrected_parallax_and_distance(row):
     if pd.notnull(row['parallax']) and pd.notnull(row['parallax_error']):
         parallax = ufloat(row['parallax'], row['parallax_error'])
         corrected_parallax = parallax - zero_point
-        distance = 1000 / corrected_parallax  # Distance in parsecs
+        distance = 1000 / corrected_parallax
         corrected_parallax_value = corrected_parallax.nominal_value
         corrected_parallax_error = corrected_parallax.std_dev
         distance_pc = distance.nominal_value
@@ -114,7 +143,6 @@ def compute_corrected_parallax_and_distance(row):
         distance_pc = None
         distance_error_pc = None
 
-    # Return new columns as a Series
     return pd.Series({
         'parallax_zero_point': parallax_zero_point,
         'corrected_parallax': corrected_parallax_value,
@@ -154,43 +182,72 @@ if submitted:
         ra_deg = coord.ra.deg
         dec_deg = coord.dec.deg
         simbad_parallax = result_table['PLX_VALUE'][0] if 'PLX_VALUE' in result_table.colnames else None
+        simbad_ids = result_table['IDS'][0].split('|')
+        gaia_designation = None
 
-        gaia_results = query_gaia_for_star(ra_deg, dec_deg, search_radius_deg)
+        # Try to get Gaia DR3 designation from SIMBAD IDs
+        for id in simbad_ids:
+            id = id.strip()
+            if id.startswith('Gaia DR3'):
+                gaia_designation = id
+                break
+
+        if gaia_designation is not None:
+            gaia_results = query_gaia_by_designation(gaia_designation)
+            if not gaia_results.empty:
+                st.write(f"Target star found in Gaia DR3 with designation {gaia_designation}.")
+                closest_star = gaia_results.iloc[0]
+                gaia_nearby = query_gaia_for_star(ra_deg, dec_deg, search_radius_deg)
+                gaia_results = pd.concat([gaia_results, gaia_nearby]).drop_duplicates().reset_index(drop=True)
+            else:
+                st.write(f"Gaia DR3 designation {gaia_designation} not found. Proceeding with positional search.")
+                gaia_results = query_gaia_for_star(ra_deg, dec_deg, search_radius_deg)
+                closest_star = None
+        else:
+            st.write("Gaia DR3 designation not found in SIMBAD. Proceeding with positional search.")
+            gaia_results = query_gaia_for_star(ra_deg, dec_deg, search_radius_deg)
+            closest_star = None
+
         if gaia_results.empty:
             st.write("No nearby stars found in Gaia DR3.")
         else:
-            if simbad_parallax is not None:
-                # Set acceptable parallax difference threshold (e.g., 0.1 mas or 5% of SIMBAD parallax)
-                parallax_threshold = max(0.1, 0.05 * simbad_parallax)
-                # First, check for variable stars with parallax close to SIMBAD's parallax
-                variable_stars = gaia_results[gaia_results['phot_variable_flag'] == 'VARIABLE'].copy()
-                variable_stars['parallax_diff'] = (variable_stars['parallax'] - simbad_parallax).abs()
-                close_variable_stars = variable_stars[variable_stars['parallax_diff'] <= parallax_threshold]
-                if not close_variable_stars.empty:
-                    # Select variable star with parallax closest to SIMBAD's parallax
-                    closest_star = close_variable_stars.loc[close_variable_stars['parallax_diff'].idxmin()]
-                else:
-                    # No variable stars with matching parallax, consider all stars
-                    gaia_results['parallax_diff'] = (gaia_results['parallax'] - simbad_parallax).abs()
-                    close_stars = gaia_results[gaia_results['parallax_diff'] <= parallax_threshold]
-                    if not close_stars.empty:
-                        # Select star with parallax closest to SIMBAD's parallax
-                        closest_star = close_stars.loc[close_stars['parallax_diff'].idxmin()]
+            if closest_star is None:
+                if simbad_parallax is not None:
+                    # Set acceptable parallax difference threshold (e.g., 0.1 mas or 5% of SIMBAD parallax)
+                    parallax_threshold = max(0.1, 0.05 * simbad_parallax)
+
+                    # First, check for variable stars with parallax close to SIMBAD's parallax
+                    variable_stars = gaia_results[gaia_results['phot_variable_flag'] == 'VARIABLE'].copy()
+                    variable_stars['parallax_diff'] = (variable_stars['parallax'] - simbad_parallax).abs()
+
+                    close_variable_stars = variable_stars[variable_stars['parallax_diff'] <= parallax_threshold]
+
+                    if not close_variable_stars.empty:
+                        # Select variable star with parallax closest to SIMBAD's parallax
+                        closest_star = close_variable_stars.loc[close_variable_stars['parallax_diff'].idxmin()]
                     else:
-                        st.write("No matching star found due to parallax mismatch.")
-                        closest_star = None
-            else:
-                # SIMBAD parallax not available, select the star with smallest angular distance
-                closest_star = gaia_results.iloc[0]
+                        # No variable stars with matching parallax, consider all stars
+                        gaia_results['parallax_diff'] = (gaia_results['parallax'] - simbad_parallax).abs()
+                        close_stars = gaia_results[gaia_results['parallax_diff'] <= parallax_threshold]
+                        if not close_stars.empty:
+                            # Select star with parallax closest to SIMBAD's parallax
+                            closest_star = close_stars.loc[close_stars['parallax_diff'].idxmin()]
+                        else:
+                            st.write("No matching star found due to parallax mismatch.")
+                            closest_star = None
+                else:
+                    # SIMBAD parallax not available, select the star with smallest angular distance
+                    gaia_results['angular_distance'] = gaia_results.apply(
+                        lambda row: angular_distance_with_uncertainties(
+                            ra_deg, dec_deg, row['ra'], row['dec'], 0, 0, 0, 0).nominal_value, axis=1)
+                    closest_star = gaia_results.loc[gaia_results['angular_distance'].idxmin()]
 
             if closest_star is not None:
-                # Perform calculations for the closest star
                 closest_star = closest_star.copy()
                 closest_star_new_cols = compute_corrected_parallax_and_distance(closest_star)
                 for col in closest_star_new_cols.index:
                     closest_star[col] = closest_star_new_cols[col]
 
-                # Perform calculations for other stars
                 gaia_results = gaia_results.copy()
                 gaia_new_cols = gaia_results.apply(compute_corrected_parallax_and_distance, axis=1)
                 gaia_results = pd.concat([gaia_results, gaia_new_cols], axis=1)
@@ -209,7 +266,6 @@ if submitted:
                 gaia_results['Angular Distance [arcsec]'] = gaia_results['angular_distance'].apply(lambda x: x.nominal_value)
                 gaia_results['Angular Distance Error [arcsec]'] = gaia_results['angular_distance'].apply(lambda x: x.std_dev)
 
-                # Prepare dataframes for display
                 closest_star_row = pd.DataFrame({
                     "Designation": [closest_star['DESIGNATION']],
                     "RA [deg]": [closest_star['ra']],
