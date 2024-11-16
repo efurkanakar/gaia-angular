@@ -1,6 +1,6 @@
 streamlit
 pandas
-numpy==1.26.4
+numpy==2.1.0
 gaiadr3-zeropoint
 uncertainties
 astroquery
