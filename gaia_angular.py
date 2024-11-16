@@ -192,11 +192,14 @@ if submitted:
                 gaia_designation = id
                 break
 
+        selection_method = None  # Initialize selection method
+
         if gaia_designation is not None:
             gaia_results = query_gaia_by_designation(gaia_designation)
             if not gaia_results.empty:
                 st.write(f"Target star found in Gaia DR3 with designation {gaia_designation}.")
                 closest_star = gaia_results.iloc[0]
+                selection_method = 'designation'
                 gaia_nearby = query_gaia_for_star(ra_deg, dec_deg, search_radius_deg)
                 gaia_results = pd.concat([gaia_results, gaia_nearby]).drop_duplicates().reset_index(drop=True)
             else:
@@ -225,6 +228,7 @@ if submitted:
                     if not close_variable_stars.empty:
                         # Select variable star with parallax closest to SIMBAD's parallax
                         closest_star = close_variable_stars.loc[close_variable_stars['parallax_diff'].idxmin()]
+                        selection_method = 'parallax_variable'
                     else:
                         # No variable stars with matching parallax, consider all stars
                         gaia_results['parallax_diff'] = (gaia_results['parallax'] - simbad_parallax).abs()
@@ -232,17 +236,30 @@ if submitted:
                         if not close_stars.empty:
                             # Select star with parallax closest to SIMBAD's parallax
                             closest_star = close_stars.loc[close_stars['parallax_diff'].idxmin()]
+                            selection_method = 'parallax'
                         else:
                             st.write("No matching star found due to parallax mismatch.")
                             closest_star = None
+                            selection_method = None
                 else:
                     # SIMBAD parallax not available, select the star with smallest angular distance
                     gaia_results['angular_distance'] = gaia_results.apply(
                         lambda row: angular_distance_with_uncertainties(
                             ra_deg, dec_deg, row['ra'], row['dec'], 0, 0, 0, 0).nominal_value, axis=1)
                     closest_star = gaia_results.loc[gaia_results['angular_distance'].idxmin()]
+                    selection_method = 'angular_distance'
 
             if closest_star is not None:
+                # Inform the user about the selection method
+                if selection_method == 'designation':
+                    st.write("The target star was identified in Gaia DR3 using the SIMBAD designation. This is the most reliable method.")
+                elif selection_method == 'parallax_variable':
+                    st.write("The target star was identified based on variable star flag and parallax matching. The star is likely your target star, but please confirm.")
+                elif selection_method == 'parallax':
+                    st.write("The target star was identified based on parallax matching. The star is likely your target star, but please confirm.")
+                elif selection_method == 'angular_distance':
+                    st.write("The target star was identified based on the smallest angular distance. Please verify that this is the correct star.")
+
                 closest_star = closest_star.copy()
                 closest_star_new_cols = compute_corrected_parallax_and_distance(closest_star)
                 for col in closest_star_new_cols.index:
@@ -311,14 +328,34 @@ if submitted:
                 full_table = pd.concat([closest_star_row, closest_stars], ignore_index=True).dropna(axis=1, how='all')
                 full_table = full_table.sort_values(by="Angular Distance [arcsec]", ascending=True, na_position='first').reset_index(drop=True)
 
+                # Define a function to highlight the target star based on selection method
                 def highlight_target_row(row):
-                    return ['background-color: DarkGreen' if row.name == 0 else '' for _ in row]
+                    if row.name == 0:
+                        if selection_method == 'designation':
+                            color = 'DarkGreen'
+                        elif selection_method == 'parallax_variable':
+                            color = 'DarkOrange'
+                        elif selection_method == 'parallax':
+                            color = 'DarkRed'
+                        elif selection_method == 'angular_distance':
+                            color = 'Purple'
+                        else:
+                            color = 'LightGrey'
+                        return ['background-color: {}'.format(color) for _ in row]
+                    else:
+                        return ['' for _ in row]
 
                 styled_table = full_table.style.apply(highlight_target_row, axis=1).set_properties(**{'text-align': 'center'})
 
                 st.write("Nearby Objects")
                 st.markdown(
-                    "<p style='font-size:16px; font-style:italic;'>The target star is highlighted in dark green.</p>",
+                    "<p style='font-size:16px; font-style:italic;'>The target star is highlighted in color based on the selection method:</p>"
+                    "<ul>"
+                    "<li style='color:DarkGreen;'>Green: Identified via SIMBAD designation (most reliable).</li>"
+                    "<li style='color:DarkOrange;'>Orange: Identified via variable flag and parallax matching (likely your star, please confirm).</li>"
+                    "<li style='color:DarkRed;'>Red: Identified via parallax matching (likely your star, please confirm).</li>"
+                    "<li style='color:Purple;'>Purple: Identified via smallest angular distance (please verify).</li>"
+                    "</ul>",
                     unsafe_allow_html=True)
                 st.dataframe(styled_table, use_container_width=True, hide_index=True)
             else:
