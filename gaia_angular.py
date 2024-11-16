@@ -162,13 +162,10 @@ if submitted:
             if simbad_parallax is not None:
                 # Set acceptable parallax difference threshold (e.g., 0.1 mas or 5% of SIMBAD parallax)
                 parallax_threshold = max(0.1, 0.05 * simbad_parallax)
-
                 # First, check for variable stars with parallax close to SIMBAD's parallax
                 variable_stars = gaia_results[gaia_results['phot_variable_flag'] == 'VARIABLE'].copy()
                 variable_stars['parallax_diff'] = (variable_stars['parallax'] - simbad_parallax).abs()
-
                 close_variable_stars = variable_stars[variable_stars['parallax_diff'] <= parallax_threshold]
-
                 if not close_variable_stars.empty:
                     # Select variable star with parallax closest to SIMBAD's parallax
                     closest_star = close_variable_stars.loc[close_variable_stars['parallax_diff'].idxmin()]
@@ -265,7 +262,7 @@ if submitted:
 
                 st.write("Nearby Objects")
                 st.markdown(
-                    "<p style='font-size:16px; font-style:italic;'>The target object is highlighted in dark green.</p>",
+                    "<p style='font-size:16px; font-style:italic;'>The target star is highlighted in dark green.</p>",
                     unsafe_allow_html=True)
                 st.dataframe(styled_table, use_container_width=True, hide_index=True)
             else:
