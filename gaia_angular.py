@@ -156,7 +156,7 @@ st.markdown("""
 <p style='font-size:16px'>
 This application searches for objects in the Gaia DR3 catalog and displays nearby objects with their properties.
 It calculates both the angular distance between objects using the Haversine formula and the corrected distance 
-from Earth by applying the parallax zero-point correction as Lindegren et al. (2021).
+from Earth by applying the parallax zero-point correction as per Lindegren et al. (2021).
 </p>
 """, unsafe_allow_html=True)
 
@@ -250,15 +250,15 @@ if submitted:
                     selection_method = 'angular_distance'
 
             if closest_star is not None:
-                # Inform the user about the selection method
+                # Display the message corresponding to the selection method
                 if selection_method == 'designation':
-                    st.write("The target star was identified in Gaia DR3 using the SIMBAD designation. This is the most reliable method.")
+                    st.write("The target star was identified via SIMBAD designation. This is the most reliable method.")
                 elif selection_method == 'parallax_variable':
-                    st.write("The target star was identified based on variable star flag and parallax matching. The star is likely your target star, but please confirm.")
+                    st.write("The target star was identified using variable flag and parallax matching. The star is likely your target, but please confirm.")
                 elif selection_method == 'parallax':
-                    st.write("The target star was identified based on parallax matching. The star is likely your target star, but please confirm.")
+                    st.write("The target star was identified using parallax matching. The star is likely your target, but please confirm.")
                 elif selection_method == 'angular_distance':
-                    st.write("The target star was identified based on the smallest angular distance. Please verify that this is the correct star.")
+                    st.write("The target star was identified using the smallest angular distance. Please verify that this is the correct star.")
 
                 closest_star = closest_star.copy()
                 closest_star_new_cols = compute_corrected_parallax_and_distance(closest_star)
@@ -348,15 +348,24 @@ if submitted:
                 styled_table = full_table.style.apply(highlight_target_row, axis=1).set_properties(**{'text-align': 'center'})
 
                 st.write("Nearby Objects")
-                st.markdown(
-                    "<p style='font-size:16px; font-style:italic;'>The target star is highlighted in color based on the selection method:</p>"
-                    "<ul>"
-                    "<li style='color:DarkGreen;'>Green: Identified via SIMBAD designation (most reliable).</li>"
-                    "<li style='color:DarkOrange;'>Orange: Identified via variable flag and parallax matching (likely your star, please confirm).</li>"
-                    "<li style='color:DarkRed;'>Red: Identified via parallax matching (likely your star, please confirm).</li>"
-                    "<li style='color:Purple;'>Purple: Identified via smallest angular distance (please verify).</li>"
-                    "</ul>",
-                    unsafe_allow_html=True)
+
+                # Display the legend corresponding only to the selection method used
+                legend_message = "<p style='font-size:16px; font-style:italic;'>The target star is highlighted based on the selection method:</p>"
+
+                if selection_method == 'designation':
+                    legend_message += "<ul><li style='color:DarkGreen;'>Green: Identified via SIMBAD designation (most reliable).</li></ul>"
+                elif selection_method == 'parallax_variable':
+                    legend_message += "<ul><li style='color:DarkOrange;'>Orange: Identified via variable flag and parallax matching (likely your star, please confirm).</li></ul>"
+                elif selection_method == 'parallax':
+                    legend_message += "<ul><li style='color:DarkRed;'>Red: Identified via parallax matching (likely your star, please confirm).</li></ul>"
+                elif selection_method == 'angular_distance':
+                    legend_message += "<ul><li style='color:Purple;'>Purple: Identified via smallest angular distance (please verify).</li></ul>"
+                else:
+                    legend_message = ""
+
+                if legend_message:
+                    st.markdown(legend_message, unsafe_allow_html=True)
+
                 st.dataframe(styled_table, use_container_width=True, hide_index=True)
             else:
                 st.write("No matching star found due to parallax mismatch.")
