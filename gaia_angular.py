@@ -249,21 +249,34 @@ if submitted:
                     selection_method = 'angular_distance'
 
             if closest_star is not None:
-                # Construct a single message including the method and color
+                # Define color mappings
                 color_dict = {
                     'designation': 'green',
-                    'parallax_variable': 'orange',
-                    'parallax': 'red',
+                    'parallax_variable': 'darkorange',
+                    'parallax': 'darkred',
                     'angular_distance': 'purple'
                 }
-                method_messages = {
-                    'designation': f"The target star was identified in Gaia DR3 using the SIMBAD designation (highlighted in {color_dict['designation']}). This is the most reliable method.",
-                    'parallax_variable': f"The target star was identified using variable flag and parallax matching (highlighted in {color_dict['parallax_variable']}). The star is likely your target, but please confirm.",
-                    'parallax': f"The target star was identified using parallax matching (highlighted in {color_dict['parallax']}). The star is possibly your target, but please confirm.",
-                    'angular_distance': f"The target star was identified using the smallest angular distance (highlighted in {color_dict['angular_distance']}). Please verify that this is the correct star."
+
+                color_hex_dict = {
+                    'designation': '#008000',        # green
+                    'parallax_variable': '#FF8C00',  # dark orange
+                    'parallax': '#8B0000',           # dark red
+                    'angular_distance': '#800080'    # purple
                 }
 
-                st.write(method_messages.get(selection_method, ""))
+                # Updated method messages with adjusted wording
+                method_messages = {
+                    'designation': "The target object was identified in Gaia DR3 using the SIMBAD designation. This is the most reliable method.",
+                    'parallax_variable': "The target object was identified using variable flag and parallax matching. This method is more reliable than parallax matching alone, but please confirm.",
+                    'parallax': "The target object was identified using parallax matching. The object is possibly your target, but please confirm.",
+                    'angular_distance': "The target object was identified using the smallest angular distance. Please verify that this is the correct object."
+                }
+
+                # Display the message in the same color as the highlight
+                message = method_messages.get(selection_method, "")
+                color = color_hex_dict.get(selection_method, '#000000')  # default to black
+
+                st.markdown(f"<p style='color:{color}; font-size:16px'>{message}</p>", unsafe_allow_html=True)
 
                 closest_star = closest_star.copy()
                 closest_star_new_cols = compute_corrected_parallax_and_distance(closest_star)
