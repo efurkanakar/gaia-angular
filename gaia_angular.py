@@ -136,25 +136,30 @@ def compute_zero_point_correction(row):
         ecl_lat = row['ecl_lat']
         astrometric_params_solved = row['astrometric_params_solved']
 
+        # Parametrelerin kontrolü
         if astrometric_params_solved == 31:
             if pd.isnull(pseudocolour):
                 pseudocolour = 0.0
         elif astrometric_params_solved == 95:
             nu_eff_used_in_astrometry = None
             if pd.isnull(pseudocolour):
-                logging.warning("Pseudocolour is required for a 6-parameter solution.")
+                st.write("Warning: Pseudocolour is required for a 6-parameter solution.")
                 pseudocolour = 0.0
         else:
             pseudocolour = None
             nu_eff_used_in_astrometry = None
 
+        # Zero-point düzeltmesini hesapla
         zero_point = zpt.get_zpt(phot_g_mean_mag, nu_eff_used_in_astrometry,
                                  pseudocolour, ecl_lat, astrometric_params_solved)
-        logging.info(f"Zero-point correction calculated: {zero_point}")
+        st.write(f"Zero-point correction calculated: {zero_point}")
         return zero_point
     except Exception as e:
-        logging.error(f"Error calculating zero-point correction: {e}")
-        return 0.0
+        # Hata mesajını ekrana yazdır
+        st.write(f"Error calculating zero-point correction: {e}")
+        # Hatanın detaylarını göstermek için raise yapabilirsiniz
+        raise
+
 
 st.title("Gaia Query: Calculating Distances and Angular Separations")
 st.markdown("""
