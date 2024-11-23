@@ -94,7 +94,7 @@
         <tr>
             <td><code>Proper Motion [mas yr⁻¹]</code></td>
             <td>Proper motion of the object in milliarcseconds per year.</td>
-            <td>milliarcseconds per year (mas yr<sup>-1</sup>)</td>
+            <td>milliarcseconds per year (mas yr⁻¹)</td>
         </tr>
         <tr>
             <td><code>RUWE</code></td>
@@ -107,12 +107,12 @@
             <td>mag</td>
         </tr>
         <tr>
-            <td><code>T_eff</code></td>
+            <td><code>Tₑₓₓ</code></td>
             <td>Effective temperature of the object.</td>
             <td>K (Kelvin)</td>
         </tr>
         <tr>
-            <td><code>T_eff Err</code></td>
+            <td><code>Tₑₓₓ Err</code></td>
             <td>Uncertainty in the effective temperature.</td>
             <td>K (Kelvin)</td>
         </tr>
