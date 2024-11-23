@@ -188,7 +188,7 @@ source venv/bin/activate  # On Windows, use venv\Scripts\activate</code></pre>
         </tr>
         <tr>
             <td><code>RUWE</code></td>
-            <td>Renormalized Unit Weight Error, a measure of astrometric quality.</td>
+            <td>Renormalized Unit Weight Error</td>
             <td>-</td>
         </tr>
         <tr>
