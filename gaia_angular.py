@@ -362,8 +362,8 @@ if submitted:
                     "Proper Motion [mas yr⁻¹]": [closest_star['pm']],
                     "RUWE": [closest_star['ruwe']],
                     "Magnitude [Gaia G]": [closest_star['phot_g_mean_mag']],
-                    "T_eff": [closest_star['Teff']],
-                    "T_eff Err": [closest_star['Teff Err']],
+                    "Tₑ": [closest_star['Teff']],
+                    "Tₑ Err": [closest_star['Teff Err']],
                 })
 
                 gaia_results = gaia_results.drop(closest_star.name)
@@ -388,14 +388,13 @@ if submitted:
                     "Proper Motion [mas yr⁻¹]": gaia_results['pm'],
                     "RUWE": gaia_results['ruwe'],
                     "Magnitude [Gaia G]": gaia_results['phot_g_mean_mag'],
-                    "T_eff": gaia_results['Teff'],
-                    "T_eff Err": gaia_results['Teff Err'],
+                    "Tₑ": gaia_results['Teff'],
+                    "Tₑ Err": gaia_results['Teff Err'],
                 })
 
                 full_table = pd.concat([closest_star_row, closest_stars], ignore_index=True).dropna(axis=1, how='all')
                 full_table = full_table.sort_values(by="Angular Distance [arcsec]", ascending=True, na_position='first').reset_index(drop=True)
 
-                # Define a function to highlight the target star based on selection method
                 def highlight_target_row(row):
                     if row.name == 0:
                         color = color_dict.get(selection_method, 'LightGrey')
