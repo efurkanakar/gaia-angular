@@ -112,7 +112,7 @@
             <td>K (Kelvin)</td>
         </tr>
         <tr>
-            <td><code>Tfₓₓ Err</code></td>
+            <td><code>Tₑₓₓ Err</code></td>
             <td>Uncertainty in the effective temperature.</td>
             <td>K (Kelvin)</td>
         </tr>
