@@ -197,12 +197,12 @@ source venv/bin/activate  # On Windows, use venv\Scripts\activate</code></pre>
             <td>mag</td>
         </tr>
         <tr>
-            <td><code>Tₑ</code></td>
+            <td><code>Eff Temp [K]</code></td>
             <td>Effective temperature of the object.</td>
             <td>K (Kelvin)</td>
         </tr>
         <tr>
-            <td><code>Tₑ Err</code></td>
+            <td><code>Eff Temp Err [K]</code></td>
             <td>Uncertainty in the effective temperature.</td>
             <td>K (Kelvin)</td>
         </tr>
