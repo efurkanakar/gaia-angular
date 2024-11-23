@@ -215,10 +215,10 @@ if submitted:
         else:
             if closest_star is None:
                 if simbad_parallax is not None:
-                    # Set acceptable parallax difference threshold (e.g., 0.1 mas or 5% of SIMBAD parallax)
+                    # Set acceptable parallax difference threshold
                     parallax_threshold = max(0.1, 0.05 * simbad_parallax)
 
-                    # First, check for variable stars with parallax close to SIMBAD's parallax
+                    # Check for variable stars with parallax close to SIMBAD's parallax
                     variable_stars = gaia_results[gaia_results['phot_variable_flag'] == 'VARIABLE'].copy()
                     variable_stars['parallax_diff'] = (variable_stars['parallax'] - simbad_parallax).abs()
 
@@ -257,10 +257,10 @@ if submitted:
                 }
 
                 color_hex_dict = {
-                    'designation': '#008000',       
-                    'parallax_variable': '#FF8C00', 
-                    'parallax': '#8B0000',           
-                    'angular_distance': '#800080'   
+                    'designation': '#008000',        # Green
+                    'parallax_variable': '#FF8C00',  # DarkOrange
+                    'parallax': '#8B0000',           # DarkRed
+                    'angular_distance': '#800080'    # Purple
                 }
 
                 method_messages = {
@@ -298,6 +298,25 @@ if submitted:
                 gaia_results['Angular Distance [arcsec]'] = gaia_results['angular_distance'].apply(lambda x: x.nominal_value)
                 gaia_results['Angular Distance Error [arcsec]'] = gaia_results['angular_distance'].apply(lambda x: x.std_dev)
 
+                # Compute linear separation
+                def compute_linear_separation(row, target_star):
+                    θ = row['angular_distance']  # ufloat, in arcseconds
+                    D = ufloat(target_star['distance_pc'], target_star['distance_error_pc'])  # ufloat, in parsecs
+                    if pd.notnull(θ.nominal_value) and pd.notnull(D.nominal_value):
+                        S = θ * D  # Linear separation in AU
+                        return S
+                    else:
+                        return None
+
+                gaia_results['linear_separation'] = gaia_results.apply(
+                    lambda row: compute_linear_separation(row, closest_star), axis=1)
+
+                gaia_results['Linear Separation [AU]'] = gaia_results['linear_separation'].apply(
+                    lambda x: x.nominal_value if x else None)
+                gaia_results['Linear Separation Err [AU]'] = gaia_results['linear_separation'].apply(
+                    lambda x: x.std_dev if x else None)
+
+                # Set linear separation for the target star
                 closest_star_row = pd.DataFrame({
                     "Designation": [closest_star['DESIGNATION']],
                     "RA [deg]": [closest_star['ra']],
@@ -312,7 +331,9 @@ if submitted:
                     "Distance [pc]": [closest_star['distance_pc']],
                     "Distance Err [pc]": [closest_star['distance_error_pc']],
                     "Angular Distance [arcsec]": [0],
-                    "Angular Distance Err [arcsec]": [0],
+                    "Angular Distance Error [arcsec]": [0],
+                    "Linear Separation [AU]": [0],
+                    "Linear Separation Err [AU]": [0],
                     "Proper Motion [mas yr⁻¹]": [closest_star['pm']],
                     "RUWE": [closest_star['ruwe']],
                     "Magnitude [Gaia G]": [closest_star['phot_g_mean_mag']],
@@ -334,7 +355,9 @@ if submitted:
                     "Distance [pc]": gaia_results['distance_pc'],
                     "Distance Err [pc]": gaia_results['distance_error_pc'],
                     "Angular Distance [arcsec]": gaia_results['Angular Distance [arcsec]'],
-                    "Angular Distance Err [arcsec]": gaia_results['Angular Distance Error [arcsec]'],
+                    "Angular Distance Error [arcsec]": gaia_results['Angular Distance Error [arcsec]'],
+                    "Linear Separation [AU]": gaia_results['Linear Separation [AU]'],
+                    "Linear Separation Err [AU]": gaia_results['Linear Separation Err [AU]'],
                     "Proper Motion [mas yr⁻¹]": gaia_results['pm'],
                     "RUWE": gaia_results['ruwe'],
                     "Magnitude [Gaia G]": gaia_results['phot_g_mean_mag'],
