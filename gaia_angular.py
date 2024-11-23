@@ -304,6 +304,7 @@ if submitted:
                 gaia_results['Angular Distance [arcsec]'] = gaia_results['angular_distance'].apply(lambda x: x.nominal_value)
                 gaia_results['Angular Distance Error [arcsec]'] = gaia_results['angular_distance'].apply(lambda x: x.std_dev)
 
+                # Compute linear separation
                 def compute_linear_separation(row, target_star):
                     theta = row['angular_distance']  # ufloat, in arcseconds
                     d = ufloat(target_star['distance_pc'], target_star['distance_error_pc'])  # ufloat, in parsecs
@@ -321,6 +322,7 @@ if submitted:
                 gaia_results['Linear Separation Err [AU]'] = gaia_results['linear_separation'].apply(
                     lambda x: x.std_dev if x else None)
 
+                # Compute Teff and Teff Err
                 def compute_teff_and_error(row):
                     teff = row['teff_gspphot']
                     teff_lower = row['teff_gspphot_lower']
@@ -334,10 +336,12 @@ if submitted:
                 teff_cols = gaia_results.apply(compute_teff_and_error, axis=1)
                 gaia_results = pd.concat([gaia_results, teff_cols], axis=1)
 
+                # For the closest star
                 closest_star_teff = compute_teff_and_error(closest_star)
                 for col in closest_star_teff.index:
                     closest_star[col] = closest_star_teff[col]
 
+                # Set linear separation for the target star
                 closest_star_row = pd.DataFrame({
                     "Designation": [closest_star['DESIGNATION']],
                     "RA [deg]": [closest_star['ra']],
@@ -358,8 +362,8 @@ if submitted:
                     "Proper Motion [mas yr⁻¹]": [closest_star['pm']],
                     "RUWE": [closest_star['ruwe']],
                     "Magnitude [Gaia G]": [closest_star['phot_g_mean_mag']],
-                    "Teff": [closest_star['Teff']],
-                    "Teff Err": [closest_star['Teff Err']],
+                    "T_eff": [closest_star['Teff']],
+                    "T_eff Err": [closest_star['Teff Err']],
                 })
 
                 gaia_results = gaia_results.drop(closest_star.name)
@@ -384,15 +388,14 @@ if submitted:
                     "Proper Motion [mas yr⁻¹]": gaia_results['pm'],
                     "RUWE": gaia_results['ruwe'],
                     "Magnitude [Gaia G]": gaia_results['phot_g_mean_mag'],
-                    "Teff": gaia_results['Teff'],
-                    "Teff Err": gaia_results['Teff Err'],
+                    "T_eff": gaia_results['Teff'],
+                    "T_eff Err": gaia_results['Teff Err'],
                 })
 
                 full_table = pd.concat([closest_star_row, closest_stars], ignore_index=True).dropna(axis=1, how='all')
                 full_table = full_table.sort_values(by="Angular Distance [arcsec]", ascending=True, na_position='first').reset_index(drop=True)
 
-                full_table.rename(columns={'Teff': 'T<sub>eff</sub>', 'Teff Err': 'T<sub>eff</sub> Err'}, inplace=True)
-
+                # Define a function to highlight the target star based on selection method
                 def highlight_target_row(row):
                     if row.name == 0:
                         color = color_dict.get(selection_method, 'LightGrey')
@@ -402,12 +405,7 @@ if submitted:
 
                 styled_table = full_table.style.apply(highlight_target_row, axis=1).set_properties(**{'text-align': 'center'})
 
-                styled_table = styled_table.set_table_styles([
-                    {'selector': 'th.col_heading',
-                     'props': [('text-align', 'center')]},
-                ])
-
                 st.write("Nearby Objects")
-                st.write(styled_table.to_html(escape=False), unsafe_allow_html=True)
+                st.dataframe(styled_table, use_container_width=True, hide_index=True)
             else:
                 st.write("No matching star found due to parallax mismatch.")
