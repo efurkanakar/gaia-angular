@@ -303,7 +303,8 @@ if submitted:
                     θ = row['angular_distance']  # ufloat, in arcseconds
                     D = ufloat(target_star['distance_pc'], target_star['distance_error_pc'])  # ufloat, in parsecs
                     if pd.notnull(θ.nominal_value) and pd.notnull(D.nominal_value):
-                        S = θ * D  # Linear separation in AU
+                        S = θ * D
+                        st.write("furkan")
                         return S
                     else:
                         return None
