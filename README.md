@@ -1,6 +1,6 @@
 <h1>Gaia Query: Calculating Distances and Angular Separations</h1>
 
-<p>This repository contains a Streamlit application that queries the Gaia DR3 catalog for nearby objects and computes various properties, including angular separations and corrected distances from Earth by applying parallax zero-point corrections as per Lindegren et al. (2021). The application selects the target object based on Gaia DR3 designation availability, variable object status, and parallax comparison with SIMBAD data. The results include clear color-coded indications for the method used to identify the target object.</p>
+<p>This repository contains a Streamlit application that queries the Gaia DR3 catalog for nearby objects and computes various properties, including angular and linear separations and corrected distances from Earth by applying parallax zero-point corrections as per Lindegren et al. (2021). The application selects the target object based on Gaia DR3 designation availability, variable object status, and parallax comparison with SIMBAD data. The results include clear color-coded indications for the method used to identify the target object.</p>
 
 <h2>Quick Start</h2>
 
@@ -23,6 +23,7 @@
 <ul>
     <li>Calculates angular separations between two objects using the Haversine formula.</li>
     <li>Computes corrected distances using Lindegren et al. (2021) parallax zero-point corrections.</li>
+    <li>Computes linear separations using their angular separations and distances.</li>
 </ul>
 
 <h2 id="installation">Installation</h2>
@@ -162,22 +163,22 @@ source venv/bin/activate  # On Windows, use venv\Scripts\activate</code></pre>
             <td>parsecs (pc)</td>
         </tr>
         <tr>
-            <td><code>Angular Distance [arcsec]</code></td>
+            <td><code>Angular Sep [arcsec]</code></td>
             <td>Angular separation between the target object and a reference object.</td>
             <td>arcseconds (arcsec)</td>
         </tr>
         <tr>
-            <td><code>Angular Distance Error [arcsec]</code></td>
+            <td><code>Angular Sep Err [arcsec]</code></td>
             <td>Uncertainty in the angular separation.</td>
             <td>arcseconds (arcsec)</td>
         </tr>
         <tr>
-            <td><code>Linear Separation [AU]</code></td>
+            <td><code>Linear Sep [AU]</code></td>
             <td>Linear (physical) separation between objects in Astronomical Units (AU).</td>
             <td>Astronomical Units (AU)</td>
         </tr>
         <tr>
-            <td><code>Linear Separation Err [AU]</code></td>
+            <td><code>Linear Sep Err [AU]</code></td>
             <td>Uncertainty in the linear separation.</td>
             <td>Astronomical Units (AU)</td>
         </tr>
