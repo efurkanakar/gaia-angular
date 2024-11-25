@@ -11,8 +11,8 @@ from zero_point import zpt
 st.set_page_config(layout="wide")
 zpt.load_tables()
 
-def angular_distance_with_uncertainties(ra1_deg, dec1_deg, ra2_deg, dec2_deg,
-                                        ra1_err_mas, dec1_err_mas, ra2_err_mas, dec2_err_mas):
+def angular_separation_with_uncertainties(ra1_deg, dec1_deg, ra2_deg, dec2_deg,
+                                          ra1_err_mas, dec1_err_mas, ra2_err_mas, dec2_err_mas):
     ra1_err_deg = ra1_err_mas / 3600000
     dec1_err_deg = dec1_err_mas / 3600000
     ra2_err_deg = ra2_err_mas / 3600000
@@ -160,9 +160,12 @@ def compute_corrected_parallax_and_distance(row):
 st.title("Gaia Query: Calculating Distances and Angular Separations")
 st.markdown("""
 <p style='font-size:16px'>
-This application searches for objects in the Gaia DR3 catalog and displays nearby objects with their properties.
-It calculates both the angular distance between objects using the Haversine formula and the corrected distance 
-from Earth by applying the parallax zero-point correction as per Lindegren et al. (2021).
+
+This application searches for objects in the Gaia DR3 catalog and displays nearby objects with their properties. 
+It calculates the angular separation between objects using the Haversine formula,
+the corrected distance from Earth by applying the parallax zero-point correction as per Lindegren et al. (2021),
+and the linear separation using angular separation and corrected distances.
+
 </p>
 """, unsafe_allow_html=True)
 
@@ -191,14 +194,13 @@ if submitted:
         simbad_ids = result_table['IDS'][0].split('|')
         gaia_designation = None
 
-        # Try to get Gaia DR3 designation from SIMBAD IDs
         for id in simbad_ids:
             id = id.strip()
             if id.startswith('Gaia DR3'):
                 gaia_designation = id
                 break
 
-        selection_method = None  # Initialize selection method
+        selection_method = None  
 
         if gaia_designation is not None:
             gaia_results = query_gaia_by_designation(gaia_designation)
@@ -247,33 +249,33 @@ if submitted:
                             closest_star = None
                             selection_method = None
                 else:
-                    # SIMBAD parallax not available, select the star with smallest angular distance
-                    gaia_results['angular_distance'] = gaia_results.apply(
-                        lambda row: angular_distance_with_uncertainties(
+                    # SIMBAD parallax not available, select the star with smallest angular separation
+                    gaia_results['angular_separation'] = gaia_results.apply(
+                        lambda row: angular_separation_with_uncertainties(
                             ra_deg, dec_deg, row['ra'], row['dec'], 0, 0, 0, 0).nominal_value, axis=1)
-                    closest_star = gaia_results.loc[gaia_results['angular_distance'].idxmin()]
-                    selection_method = 'angular_distance'
+                    closest_star = gaia_results.loc[gaia_results['angular_separation'].idxmin()]
+                    selection_method = 'angular_separation'
 
             if closest_star is not None:
                 color_dict = {
                     'designation': 'green',
                     'parallax_variable': 'darkorange',
                     'parallax': 'darkred',
-                    'angular_distance': 'purple'
+                    'angular_separation': 'purple'
                 }
 
                 color_hex_dict = {
                     'designation': '#008000',        # Green
                     'parallax_variable': '#FF8C00',  # DarkOrange
                     'parallax': '#8B0000',           # DarkRed
-                    'angular_distance': '#800080'    # Purple
+                    'angular_separation': '#800080'  # Purple
                 }
 
                 method_messages = {
                     'designation': "The target object was matched with the Gaia DR3 catalog using its Gaia DR3 ID from SIMBAD. This is the most reliable method.",
                     'parallax_variable': "The target object was identified using variable flag and parallax matching. This method is considered relatively reliable, but please confirm.",
                     'parallax': "The target object was identified using parallax matching. Please confirm its validity.",
-                    'angular_distance': "The target object was identified using the smallest angular distance. Please confirm if this is the correct object.",
+                    'angular_separation': "The target object was identified using the smallest angular separation. Please confirm if this is the correct object.",
                 }
 
                 message = method_messages.get(selection_method, "")
@@ -290,8 +292,8 @@ if submitted:
                 gaia_new_cols = gaia_results.apply(compute_corrected_parallax_and_distance, axis=1)
                 gaia_results = pd.concat([gaia_results, gaia_new_cols], axis=1)
 
-                def compute_angular_distance(row):
-                    result = angular_distance_with_uncertainties(
+                def compute_angular_separation(row):
+                    result = angular_separation_with_uncertainties(
                         closest_star['ra'], closest_star['dec'],
                         row['ra'], row['dec'],
                         closest_star['ra_error'], closest_star['dec_error'],
@@ -299,14 +301,13 @@ if submitted:
                     )
                     return result
 
-                gaia_results['angular_distance'] = gaia_results.apply(compute_angular_distance, axis=1)
+                gaia_results['angular_separation'] = gaia_results.apply(compute_angular_separation, axis=1)
 
-                gaia_results['Angular Distance [arcsec]'] = gaia_results['angular_distance'].apply(lambda x: x.nominal_value)
-                gaia_results['Angular Distance Error [arcsec]'] = gaia_results['angular_distance'].apply(lambda x: x.std_dev)
+                gaia_results['Angular Sep [arcsec]'] = gaia_results['angular_separation'].apply(lambda x: x.nominal_value)
+                gaia_results['Angular Sep Err [arcsec]'] = gaia_results['angular_separation'].apply(lambda x: x.std_dev)
 
-                # Compute linear separation
                 def compute_linear_separation(row, target_star):
-                    theta = row['angular_distance']  # ufloat, in arcseconds
+                    theta = row['angular_separation']  # ufloat, in arcseconds
                     d = ufloat(target_star['distance_pc'], target_star['distance_error_pc'])  # ufloat, in parsecs
                     if pd.notnull(theta.nominal_value) and pd.notnull(d.nominal_value):
                         ls = theta * d
@@ -317,12 +318,11 @@ if submitted:
                 gaia_results['linear_separation'] = gaia_results.apply(
                     lambda row: compute_linear_separation(row, closest_star), axis=1)
 
-                gaia_results['Linear Separation [AU]'] = gaia_results['linear_separation'].apply(
+                gaia_results['Linear Sep [AU]'] = gaia_results['linear_separation'].apply(
                     lambda x: x.nominal_value if x else None)
-                gaia_results['Linear Separation Err [AU]'] = gaia_results['linear_separation'].apply(
+                gaia_results['Linear Sep Err [AU]'] = gaia_results['linear_separation'].apply(
                     lambda x: x.std_dev if x else None)
 
-                # Compute Teff and Teff Err
                 def compute_teff_and_error(row):
                     teff = row['teff_gspphot']
                     teff_lower = row['teff_gspphot_lower']
@@ -336,12 +336,10 @@ if submitted:
                 teff_cols = gaia_results.apply(compute_teff_and_error, axis=1)
                 gaia_results = pd.concat([gaia_results, teff_cols], axis=1)
 
-                # For the closest star
                 closest_star_teff = compute_teff_and_error(closest_star)
                 for col in closest_star_teff.index:
                     closest_star[col] = closest_star_teff[col]
 
-                # Set linear separation for the target star
                 closest_star_row = pd.DataFrame({
                     "Designation": [closest_star['DESIGNATION']],
                     "RA [deg]": [closest_star['ra']],
@@ -355,10 +353,10 @@ if submitted:
                     "Corr Plx Err [mas]": [closest_star['corrected_parallax_error']],
                     "Distance [pc]": [closest_star['distance_pc']],
                     "Distance Err [pc]": [closest_star['distance_error_pc']],
-                    "Angular Distance [arcsec]": [0],
-                    "Angular Distance Error [arcsec]": [0],
-                    "Linear Separation [AU]": [0],
-                    "Linear Separation Err [AU]": [0],
+                    "Angular Sep [arcsec]": [0],
+                    "Angular Sep Err [arcsec]": [0],
+                    "Linear Sep [AU]": [0],
+                    "Linear Sep Err [AU]": [0],
                     "Proper Motion [mas yr⁻¹]": [closest_star['pm']],
                     "RUWE": [closest_star['ruwe']],
                     "Magnitude [Gaia G]": [closest_star['phot_g_mean_mag']],
@@ -381,10 +379,10 @@ if submitted:
                     "Corr Plx Err [mas]": gaia_results['corrected_parallax_error'],
                     "Distance [pc]": gaia_results['distance_pc'],
                     "Distance Err [pc]": gaia_results['distance_error_pc'],
-                    "Angular Distance [arcsec]": gaia_results['Angular Distance [arcsec]'],
-                    "Angular Distance Error [arcsec]": gaia_results['Angular Distance Error [arcsec]'],
-                    "Linear Separation [AU]": gaia_results['Linear Separation [AU]'],
-                    "Linear Separation Err [AU]": gaia_results['Linear Separation Err [AU]'],
+                    "Angular Sep [arcsec]": gaia_results['Angular Sep [arcsec]'],
+                    "Angular Sep Err [arcsec]": gaia_results['Angular Sep Err [arcsec]'],
+                    "Linear Sep [AU]": gaia_results['Linear Sep [AU]'],
+                    "Linear Sep Err [AU]": gaia_results['Linear Sep Err [AU]'],
                     "Proper Motion [mas yr⁻¹]": gaia_results['pm'],
                     "RUWE": gaia_results['ruwe'],
                     "Magnitude [Gaia G]": gaia_results['phot_g_mean_mag'],
@@ -393,7 +391,7 @@ if submitted:
                 })
 
                 full_table = pd.concat([closest_star_row, closest_stars], ignore_index=True).dropna(axis=1, how='all')
-                full_table = full_table.sort_values(by="Angular Distance [arcsec]", ascending=True, na_position='first').reset_index(drop=True)
+                full_table = full_table.sort_values(by="Angular Sep [arcsec]", ascending=True, na_position='first').reset_index(drop=True)
 
                 def highlight_target_row(row):
                     if row.name == 0:
