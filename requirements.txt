@@ -3,5 +3,5 @@ pandas
 numpy==1.26.4
 gaiadr3-zeropoint
 uncertainties
-astroquery
+astroquery==0.4.6
 astropy
